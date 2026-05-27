@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PLC-AI IDE Demo</title>
-    <link rel="stylesheet" href="styles.css?v=program-toolbar-4" />
+    <link rel="stylesheet" href="styles.css?v=project-io-1" />
   </head>
   <body>
     <div class="app-shell">
@@ -17,9 +17,14 @@
           </div>
         </div>
         <div class="toolbar">
+          <button id="newProjectBtn" class="secondary">新建</button>
+          <button id="openProjectBtn" class="secondary">打开</button>
+          <button id="saveProjectBtn" class="secondary">保存</button>
           <button id="compileBtn" class="secondary">编译</button>
           <button id="tidyBtn" class="secondary">整理</button>
           <button id="toggleVariableBtn" class="secondary">变量</button>
+          <button id="importVariablesBtn" class="secondary">导入变量</button>
+          <button id="exportVariablesBtn" class="secondary">导出变量</button>
           <button id="toggleProgramBtn" class="secondary">程序</button>
           <button id="toggleCodeBtn" class="secondary">代码</button>
           <button id="clearBtn" class="danger">清空画布</button>
@@ -74,6 +79,8 @@
       </section>
     </div>
     <textarea id="clipboardFallback" class="clipboard-fallback" aria-hidden="true"></textarea>
-    <script src="app.js?v=program-toolbar-4"></script>
+    <input id="projectFileInput" class="file-input-hidden" type="file" accept=".json,.plcide,application/json" />
+    <input id="variableExcelInput" class="file-input-hidden" type="file" accept=".xls,.html,.htm,.csv,text/html,text/csv,application/vnd.ms-excel" />
+    <script src="app.js?v=project-io-1"></script>
   </body>
 </html>

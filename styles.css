@@ -125,6 +125,14 @@ p {
   height: 38px;
 }
 
+.file-input-hidden {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
 select,
 input {
   border: 1px solid var(--line);
