@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PLC-AI IDE Demo</title>
+    <link rel="stylesheet" href="styles.css?v=program-toolbar-4" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="mark">PLC</div>
+          <div>
+            <h1>热套压机 PLC-AI IDE</h1>
+            <p>器件库 + 程序流 = 工站</p>
+          </div>
+        </div>
+        <div class="toolbar">
+          <button id="compileBtn" class="secondary">编译</button>
+          <button id="tidyBtn" class="secondary">整理</button>
+          <button id="toggleVariableBtn" class="secondary">变量</button>
+          <button id="toggleProgramBtn" class="secondary">程序</button>
+          <button id="toggleCodeBtn" class="secondary">代码</button>
+          <button id="clearBtn" class="danger">清空画布</button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <div id="stationScroller" class="station-scroller"></div>
+        <div class="pane-resizer workspace-resizer" data-resizer="workspace" title="调整代码宽度"></div>
+
+        <aside class="code-panel">
+          <div class="panel-head code-head">
+            <div class="code-titlebar">
+              <h2>代码预览</h2>
+              <select id="codeStationSelect" class="station-inline-select code-station-select" aria-label="选择代码工站"></select>
+              <span id="codeHint" class="code-status">未编辑</span>
+            </div>
+            <div class="code-tools">
+              <input id="codeFindInput" class="code-find-input" placeholder="查找变量或文本" />
+              <button id="codeFindPrev" class="secondary small" type="button">上一个</button>
+              <button id="codeFindNext" class="secondary small" type="button">下一个</button>
+              <span id="codeCursorInfo" class="code-cursor-info">Ln 1, Col 1</span>
+            </div>
+            <div class="ai-summary" id="aiSummary">尚未编译。点击“编译”后生成梯形图逻辑与代码。</div>
+          </div>
+          <div class="code-editor">
+            <div id="codeActiveLine" class="code-active-line" aria-hidden="true"></div>
+            <pre id="codeLineNumbers" class="code-line-numbers" aria-hidden="true"></pre>
+            <pre id="codeHighlight" class="code-highlight" aria-hidden="true"></pre>
+            <textarea id="codePreview" class="code-preview" spellcheck="false"></textarea>
+            <div id="codeSuggest" class="code-suggest" hidden></div>
+          </div>
+        </aside>
+      </main>
+    </div>
+    <div id="targetModal" class="modal-backdrop" hidden>
+      <section class="target-modal" role="dialog" aria-modal="true" aria-labelledby="targetModalTitle">
+        <header class="target-modal-head">
+          <div>
+            <h2 id="targetModalTitle">编辑执行器目标</h2>
+            <p id="targetModalMeta">目标保存后会更新器件库和后续动作。</p>
+          </div>
+          <button id="targetModalClose" class="secondary small" type="button">关闭</button>
+        </header>
+        <div id="targetRows" class="target-rows"></div>
+        <footer class="target-modal-actions">
+          <button id="targetAddRow" class="secondary" type="button">添加目标</button>
+          <span></span>
+          <button id="targetSaveFile" class="secondary" type="button">保存到文件</button>
+          <button id="targetSave" class="secondary primary-action" type="button">保存</button>
+        </footer>
+      </section>
+    </div>
+    <textarea id="clipboardFallback" class="clipboard-fallback" aria-hidden="true"></textarea>
+    <script src="app.js?v=program-toolbar-4"></script>
+  </body>
+</html>
