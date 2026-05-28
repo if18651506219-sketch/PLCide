@@ -4,7 +4,7 @@ import { validateProjectModel } from "../model/validation.js";
 export function createStore(initialModel) {
   let state = {
     model: cloneModel(initialModel),
-    activeSection: "project",
+    activeSection: "mainFlow",
     previewStationId: initialModel.stations[0]?.id || "",
     programStationId: initialModel.stations[0]?.id || "",
     validation: [],
@@ -27,7 +27,7 @@ export function createStore(initialModel) {
       state = {
         ...state,
         model: cloneModel(model),
-        activeSection: "project",
+        activeSection: "mainFlow",
         previewStationId: model.stations[0]?.id || "",
         programStationId: model.stations[0]?.id || "",
         validation: [],

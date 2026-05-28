@@ -1,4 +1,5 @@
 export const modelSections = [
+  { id: "mainFlow", label: "主流程" },
   { id: "project", label: "项目名称" },
   { id: "stations", label: "站名称" },
   { id: "actuatorClasses", label: "执行器类" },
