@@ -21,6 +21,17 @@ export function createStore(initialModel) {
       state = { ...state, activeSection: section, selectedCell: null };
       emit();
     },
+    replaceModel(model, toast = "项目已打开") {
+      state = {
+        ...state,
+        model: cloneModel(model),
+        activeSection: "project",
+        validation: [],
+        selectedCell: null,
+        toast
+      };
+      emit();
+    },
     setProjectName(value, options = {}) {
       state = { ...state, model: { ...state.model, projectName: value } };
       if (options.emit !== false) emit();
@@ -74,6 +85,10 @@ export function createStore(initialModel) {
     },
     setToast(toast) {
       state = { ...state, toast };
+      emit();
+    },
+    commitSilentChanges(toast) {
+      state = { ...state, toast: toast || state.toast };
       emit();
     }
   };

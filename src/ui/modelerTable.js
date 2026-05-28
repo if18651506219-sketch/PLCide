@@ -4,6 +4,7 @@ export function renderModelerTable(state) {
   const schema = tableSchemas[state.activeSection];
   if (!schema.collection) return renderProjectTable(state.model.projectName);
   const rows = state.model[schema.collection] || [];
+  const sectionErrors = state.validation.filter((item) => item.section === schema.title);
   return `
     <div class="panel-head">
       <div>
@@ -18,7 +19,7 @@ export function renderModelerTable(state) {
           <tr>${schema.columns.map((column) => `<th style="width:${column.width}px">${escapeHtml(column.label)}${column.required ? "<span>*</span>" : ""}</th>`).join("")}<th class="ops">操作</th></tr>
         </thead>
         <tbody>
-          ${rows.map((row, rowIndex) => renderRow(schema, row, rowIndex)).join("")}
+          ${rows.map((row, rowIndex) => renderRow(schema, row, rowIndex, sectionErrors)).join("")}
         </tbody>
       </table>
     </div>
@@ -31,6 +32,7 @@ export function bindModelerTable(root, store) {
       const { collection, row, key } = cell.dataset;
       store.setCell(collection, Number(row), key, cell.innerText, { emit: false });
     });
+    cell.addEventListener("blur", () => store.commitSilentChanges("草稿已更新"));
     cell.addEventListener("paste", (event) => {
       const text = event.clipboardData?.getData("text/plain") || "";
       if (!text) return;
@@ -53,6 +55,7 @@ export function bindModelerTable(root, store) {
   root.querySelectorAll("[data-table-add]").forEach((button) => button.addEventListener("click", () => store.addRow(button.dataset.tableAdd)));
   root.querySelectorAll("[data-table-delete]").forEach((button) => button.addEventListener("click", () => store.deleteRow(button.dataset.tableDelete, Number(button.dataset.row))));
   root.querySelector("[data-project-name]")?.addEventListener("input", (event) => store.setProjectName(event.currentTarget.innerText, { emit: false }));
+  root.querySelector("[data-project-name]")?.addEventListener("blur", () => store.commitSilentChanges("草稿已更新"));
 }
 
 function renderProjectTable(projectName) {
@@ -74,13 +77,14 @@ function renderProjectTable(projectName) {
   `;
 }
 
-function renderRow(schema, row, rowIndex) {
+function renderRow(schema, row, rowIndex, sectionErrors) {
+  const rowErrors = sectionErrors.filter((item) => item.row === rowIndex + 1);
   return `
-    <tr>
+    <tr class="${rowErrors.length ? "has-error" : ""}">
       ${schema.columns.map((column, colIndex) => `
         <td>
           <div
-            class="edit-cell ${column.multiline ? "multiline" : ""}"
+            class="edit-cell ${column.multiline ? "multiline" : ""} ${isEmptyRequired(column, row) ? "is-empty-required" : ""}"
             contenteditable="true"
             spellcheck="false"
             data-cell
@@ -91,9 +95,13 @@ function renderRow(schema, row, rowIndex) {
           >${escapeHtml(row[column.key] ?? "")}</div>
         </td>
       `).join("")}
-      <td class="ops"><button class="delete" data-table-delete="${schema.collection}" data-row="${rowIndex}">删除</button></td>
+      <td class="ops"><button class="delete" data-table-delete="${schema.collection}" data-row="${rowIndex}">删除</button>${rowErrors.length ? `<span class="row-error-dot" title="${escapeHtml(rowErrors.map((item) => item.message).join("；"))}">!</span>` : ""}</td>
     </tr>
   `;
+}
+
+function isEmptyRequired(column, row) {
+  return column.required && !String(row[column.key] ?? "").trim();
 }
 
 function parseClipboard(text) {

@@ -1,6 +1,9 @@
 import { modelSections } from "../model/schema.js";
+import { defaultProjectModel } from "../model/defaultProjectModel.js";
+import { readStandardExcelFile } from "../services/excelImport.js";
 import { exportStandardExcel } from "../services/excelExport.js";
 import { buildLegacyProjectPayload } from "../services/legacyAdapter.js";
+import { clearDraftModel, readProjectFile, saveV2ProjectFile } from "../services/projectFiles.js";
 import { bindModelerTable, renderModelerTable } from "./modelerTable.js";
 
 export function renderApp(root, store) {
@@ -18,10 +21,16 @@ export function renderApp(root, store) {
           </div>
           <div class="toolbar">
             <a class="secondary" href="index.html">旧版Demo</a>
+            <button class="secondary" data-action="newProject">新建</button>
+            <button class="secondary" data-action="openProject">打开</button>
+            <button class="secondary" data-action="saveProject">保存</button>
             <button class="secondary" data-action="validate">校验</button>
+            <button class="secondary" data-action="importExcel">导入标准Excel</button>
             <button class="secondary" data-action="exportExcel">生成标准Excel</button>
             <button class="secondary primary" data-action="exportProject">导出IDE项目</button>
           </div>
+          <input class="hidden-file" type="file" accept=".json,application/json" data-project-input />
+          <input class="hidden-file" type="file" accept=".xls,.html,.htm,text/html,application/vnd.ms-excel" data-excel-input />
         </header>
         <main class="v2-workspace">
           <aside class="section-nav">
@@ -46,6 +55,43 @@ export function renderApp(root, store) {
 function bindShell(root, store) {
   root.querySelectorAll("[data-section]").forEach((button) => {
     button.addEventListener("click", () => store.setActiveSection(button.dataset.section));
+  });
+  root.querySelector('[data-action="newProject"]')?.addEventListener("click", () => {
+    if (!confirm("新建会清空 V2 当前草稿，是否继续？")) return;
+    clearDraftModel();
+    store.replaceModel(defaultProjectModel(), "已新建 V2 项目");
+  });
+  root.querySelector('[data-action="openProject"]')?.addEventListener("click", () => root.querySelector("[data-project-input]")?.click());
+  root.querySelector("[data-project-input]")?.addEventListener("change", (event) => {
+    const file = event.currentTarget.files?.[0];
+    if (!file) return;
+    readProjectFile(file)
+      .then((model) => store.replaceModel(model, `已打开：${file.name}`))
+      .catch((error) => {
+        console.error(error);
+        store.setToast("打开失败，请选择 V2 保存的 JSON 项目文件");
+      })
+      .finally(() => {
+        event.currentTarget.value = "";
+      });
+  });
+  root.querySelector('[data-action="saveProject"]')?.addEventListener("click", () => {
+    saveV2ProjectFile(store.getState().model);
+    store.setToast("V2 项目文件已保存");
+  });
+  root.querySelector('[data-action="importExcel"]')?.addEventListener("click", () => root.querySelector("[data-excel-input]")?.click());
+  root.querySelector("[data-excel-input]")?.addEventListener("change", (event) => {
+    const file = event.currentTarget.files?.[0];
+    if (!file) return;
+    readStandardExcelFile(file)
+      .then((model) => store.replaceModel(model, `已导入标准Excel：${file.name}`))
+      .catch((error) => {
+        console.error(error);
+        store.setToast("导入失败，请使用 V2 生成的标准 Excel 文件");
+      })
+      .finally(() => {
+        event.currentTarget.value = "";
+      });
   });
   root.querySelector('[data-action="validate"]')?.addEventListener("click", () => store.validate());
   root.querySelector('[data-action="exportExcel"]')?.addEventListener("click", () => exportStandardExcel(store.getState().model));
