@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PLC-AI IDE Demo</title>
-    <link rel="stylesheet" href="styles.css?v=topbar-polish-1" />
+    <link rel="stylesheet" href="styles.css?v=topbar-menu-1" />
   </head>
   <body>
     <div class="app-shell">
@@ -17,28 +17,30 @@
           </div>
         </div>
         <div class="toolbar" aria-label="主工具栏">
-          <div class="toolbar-group" aria-label="项目">
-            <button id="newProjectBtn" class="secondary tool-button" title="新建项目"><span class="tool-icon">＋</span><span>新建</span></button>
-            <button id="openProjectBtn" class="secondary tool-button" title="打开项目"><span class="tool-icon">⌘</span><span>打开</span></button>
-            <button id="saveProjectBtn" class="secondary tool-button" title="保存项目"><span class="tool-icon">◇</span><span>保存</span></button>
-          </div>
           <div class="toolbar-group" aria-label="建模与编译">
-            <button id="modelerBtn" class="secondary tool-button wide" title="参数建模"><span class="tool-icon">▦</span><span>参数</span></button>
             <button id="compileBtn" class="secondary tool-button primary-tool" title="编译"><span class="tool-icon">▶</span><span>编译</span></button>
             <button id="tidyBtn" class="secondary tool-button" title="整理画布"><span class="tool-icon">↕</span><span>整理</span></button>
+            <button id="modelerBtn" class="secondary tool-button wide" title="参数建模"><span class="tool-icon">▦</span><span>参数</span></button>
           </div>
           <div class="toolbar-group" aria-label="视图">
             <button id="toggleVariableBtn" class="secondary tool-button" title="显示或隐藏变量区"><span class="tool-icon">◧</span><span>变量</span></button>
             <button id="toggleProgramBtn" class="secondary tool-button" title="显示或隐藏程序流"><span class="tool-icon">⌁</span><span>程序</span></button>
             <button id="toggleCodeBtn" class="secondary tool-button" title="显示或隐藏代码预览"><span class="tool-icon">⌘</span><span>代码</span></button>
           </div>
-          <div class="toolbar-group" aria-label="变量文件">
-            <button id="importVariablesBtn" class="secondary tool-button" title="导入变量"><span class="tool-icon">↓</span><span>导入</span></button>
-            <button id="exportVariablesBtn" class="secondary tool-button" title="导出变量"><span class="tool-icon">↑</span><span>导出</span></button>
-          </div>
-          <div class="toolbar-group danger-group" aria-label="危险操作">
-            <button id="clearBtn" class="danger tool-button" title="清空画布"><span class="tool-icon">×</span><span>清空</span></button>
-          </div>
+          <details class="toolbar-menu">
+            <summary title="更多操作"><span class="tool-icon">⋯</span><span>更多</span></summary>
+            <div class="toolbar-menu-panel">
+              <div class="menu-section-title">项目</div>
+              <button id="newProjectBtn" class="menu-item" title="新建项目"><span class="tool-icon">＋</span><span>新建项目</span></button>
+              <button id="openProjectBtn" class="menu-item" title="打开项目"><span class="tool-icon">⌘</span><span>打开项目</span></button>
+              <button id="saveProjectBtn" class="menu-item" title="保存项目"><span class="tool-icon">◇</span><span>保存项目</span></button>
+              <div class="menu-section-title">变量文件</div>
+              <button id="importVariablesBtn" class="menu-item" title="导入变量"><span class="tool-icon">↓</span><span>导入变量</span></button>
+              <button id="exportVariablesBtn" class="menu-item" title="导出变量"><span class="tool-icon">↑</span><span>导出变量</span></button>
+              <div class="menu-section-title">危险操作</div>
+              <button id="clearBtn" class="menu-item danger-menu-item" title="清空画布"><span class="tool-icon">×</span><span>清空画布</span></button>
+            </div>
+          </details>
         </div>
       </header>
 
