@@ -21,3 +21,14 @@ When changing features, start with the smallest relevant file:
 - Generic formatting/id helpers: `utils.js`
 
 This split is a low-risk first pass: files still share browser globals, so behavior stays close to the original single-file app while keeping future Codex reads smaller.
+
+## V2 rebuild entry
+
+V2 starts from `index-v2.html`, with code under `src/`:
+
+- `src/model/`: project model defaults, table schemas, validation, and pure model operations.
+- `src/store/`: a small state container. Structural actions re-render the app, while cell typing writes to the model without re-rendering so focus and scroll do not flicker.
+- `src/ui/`: the app shell and table-based parameter modeling surface.
+- `src/services/`: standard Excel export and legacy IDE project export.
+
+This machine currently has Node but no `npm`, so the first rebuild stage uses native ES modules instead of Vite dependencies. Once a package manager is available, `src/ui` can move to React/Vite while keeping `src/model` and `src/services` as pure modules.
