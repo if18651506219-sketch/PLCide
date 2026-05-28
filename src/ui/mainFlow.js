@@ -16,7 +16,7 @@ export function renderMainFlow(state) {
     </div>
     <div class="main-flow-layout">
       <aside class="flow-library">
-        ${libraryGroup("执行器", actuatorRows(state.model, station?.id))}
+        ${libraryGroup("执行器", actuatorRows(state.model, station?.id), true)}
         ${libraryGroup("传感器", variableRows(state.model.sensors, station?.id))}
         ${libraryGroup("定时器", timerRows(state.model.timers, station?.id))}
         ${libraryGroup("系统变量", variableRows(state.model.systemVariables))}
@@ -24,7 +24,7 @@ export function renderMainFlow(state) {
         ${libraryGroup("全局变量", variableRows(state.model.globalVariables))}
       </aside>
       <section class="flow-board">
-        ${steps.length ? steps.map((step, index) => flowStep(step, index)).join("") : `<div class="empty-flow">当前工站还没有程序步骤。点击“添加步骤”开始。</div>`}
+        ${steps.length ? steps.map((step, index) => flowStep(step, index, index === (state.selectedProgramStepIndex || 0))).join("") : `<div class="empty-flow">当前工站还没有程序步骤。点击“添加步骤”开始。</div>`}
       </section>
       <aside class="flow-code">
         <h3>代码预览</h3>
@@ -38,17 +38,41 @@ export function bindMainFlow(root, store) {
   root.querySelector("[data-main-station]")?.addEventListener("change", (event) => {
     store.setProgramStation(event.currentTarget.value);
   });
+  root.querySelectorAll("[data-main-step]").forEach((card) => {
+    card.addEventListener("click", (event) => {
+      if (event.target.closest("button")) return;
+      store.selectProgramStep(Number(card.dataset.mainStep));
+    });
+  });
+  root.querySelectorAll("[data-main-cell]").forEach((cell) => {
+    cell.addEventListener("input", () => {
+      store.setProgramCell(Number(cell.dataset.row), cell.dataset.key, cell.innerText, { emit: false });
+    });
+    cell.addEventListener("blur", () => store.commitSilentChanges("主流程已更新"));
+    cell.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey && cell.dataset.key !== "actions" && cell.dataset.key !== "condition") {
+        event.preventDefault();
+        cell.blur();
+      }
+    });
+  });
+  root.querySelectorAll("[data-insert-action]").forEach((button) => {
+    button.addEventListener("click", () => store.appendActionToSelectedStep(button.dataset.insertAction));
+  });
 }
 
-function flowStep(step, index) {
+function flowStep(step, index, selected) {
   return `
-    <article class="flow-step-card">
-      <div class="flow-step-no">S${escapeHtml(step.step || (index + 1) * 10)}</div>
+    <article class="flow-step-card ${selected ? "is-selected" : ""}" data-main-step="${index}">
+      <div class="flow-step-no">S<span class="flow-inline-edit" contenteditable="true" spellcheck="false" data-main-cell data-row="${index}" data-key="step">${escapeHtml(step.step || (index + 1) * 10)}</span></div>
       <div class="flow-step-body">
-        <h3>${escapeHtml(step.note || "未命名步骤")}</h3>
-        <div class="flow-step-meta">动作：${escapeHtml(step.actions || "无")}</div>
-        <div class="flow-step-meta">条件：${escapeHtml(step.condition || "动作完成")}</div>
-        <div class="flow-step-meta">超时：${escapeHtml(step.timeoutMs || 0)} ms · 下一步：${escapeHtml(step.nextStep ?? 0)}</div>
+        <h3 class="flow-card-edit" contenteditable="true" spellcheck="false" data-main-cell data-row="${index}" data-key="note">${escapeHtml(step.note || "未命名步骤")}</h3>
+        <label class="flow-step-field"><span>动作</span><div class="flow-card-edit multiline" contenteditable="true" spellcheck="false" data-main-cell data-row="${index}" data-key="actions">${escapeHtml(step.actions || "")}</div></label>
+        <label class="flow-step-field"><span>条件</span><div class="flow-card-edit" contenteditable="true" spellcheck="false" data-main-cell data-row="${index}" data-key="condition">${escapeHtml(step.condition || "")}</div></label>
+        <div class="flow-step-field-row">
+          <label class="flow-step-field small"><span>超时ms</span><div class="flow-card-edit" contenteditable="true" spellcheck="false" data-main-cell data-row="${index}" data-key="timeoutMs">${escapeHtml(step.timeoutMs || 0)}</div></label>
+          <label class="flow-step-field small"><span>下一步</span><div class="flow-card-edit" contenteditable="true" spellcheck="false" data-main-cell data-row="${index}" data-key="nextStep">${escapeHtml(step.nextStep ?? 0)}</div></label>
+        </div>
       </div>
       <button class="delete" data-program-delete data-row="${index}">删除</button>
     </article>
@@ -56,7 +80,7 @@ function flowStep(step, index) {
   `;
 }
 
-function libraryGroup(title, rows) {
+function libraryGroup(title, rows, insertable = false) {
   return `
     <section class="library-group-v2">
       <header><span>${escapeHtml(title)}</span><strong>${rows.length}</strong></header>
@@ -64,6 +88,7 @@ function libraryGroup(title, rows) {
         <div class="library-row-v2">
           <div>${escapeHtml(row.title)}</div>
           <small>${escapeHtml(row.meta)}</small>
+          ${insertable && row.actions?.length ? `<div class="library-action-buttons">${row.actions.map((action) => `<button type="button" data-insert-action="${escapeHtml(action)}">${escapeHtml(action.split(":").slice(1).join(":") || action)}</button>`).join("")}</div>` : ""}
         </div>
       `).join("") : `<div class="library-empty">无</div>`}
     </section>
@@ -73,7 +98,8 @@ function libraryGroup(title, rows) {
 function actuatorRows(model, stationId) {
   return model.actuatorInstances.filter((item) => item.stationId === stationId).map((item) => ({
     title: item.name,
-    meta: `${item.id} · ${String(item.targets || "").split(/[，,\n]/).filter(Boolean).length} 目标`
+    meta: `${item.id} · ${String(item.targets || "").split(/[，,\n]/).filter(Boolean).length} 目标`,
+    actions: String(item.targets || "").split(/[，,\n]/).map((target) => target.trim()).filter(Boolean).map((target) => `${item.id}:${target}`)
   }));
 }
 

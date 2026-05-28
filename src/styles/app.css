@@ -513,6 +513,21 @@ dd {
   font-size: 12px;
 }
 
+.library-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 7px;
+}
+
+.library-action-buttons button {
+  padding: 4px 6px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #174e84;
+}
+
 .library-empty {
   padding: 9px 10px;
 }
@@ -541,6 +556,11 @@ dd {
   box-shadow: 0 8px 22px rgba(30, 64, 100, 0.12);
 }
 
+.flow-step-card.is-selected {
+  border-color: #1f6feb;
+  box-shadow: 0 0 0 2px rgba(31, 111, 235, 0.18), 0 10px 24px rgba(30, 64, 100, 0.14);
+}
+
 .flow-step-no {
   display: grid;
   place-items: center;
@@ -551,16 +571,62 @@ dd {
   font-weight: 900;
 }
 
+.flow-inline-edit {
+  min-width: 22px;
+  outline: none;
+  text-align: center;
+}
+
 .flow-step-body h3 {
   margin: 0 0 6px;
   font-size: 15px;
 }
 
-.flow-step-meta {
+.flow-step-meta,
+.flow-step-field {
   color: #475569;
   font-size: 13px;
   line-height: 1.45;
   word-break: break-word;
+}
+
+.flow-step-field {
+  display: block;
+  margin-top: 8px;
+}
+
+.flow-step-field span {
+  display: block;
+  margin-bottom: 3px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.flow-step-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.flow-card-edit {
+  min-height: 28px;
+  padding: 5px 7px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: #f8fbff;
+  outline: none;
+  white-space: pre-wrap;
+}
+
+.flow-card-edit.multiline {
+  min-height: 50px;
+}
+
+.flow-card-edit:focus,
+.flow-inline-edit:focus {
+  background: #fffdf0;
+  box-shadow: inset 0 0 0 2px #f5b544;
 }
 
 .flow-arrow {
