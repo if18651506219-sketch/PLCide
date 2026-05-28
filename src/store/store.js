@@ -5,6 +5,7 @@ export function createStore(initialModel) {
   let state = {
     model: cloneModel(initialModel),
     activeSection: "project",
+    previewStationId: initialModel.stations[0]?.id || "",
     validation: [],
     selectedCell: null,
     toast: "V2 参数建模已就绪"
@@ -26,6 +27,7 @@ export function createStore(initialModel) {
         ...state,
         model: cloneModel(model),
         activeSection: "project",
+        previewStationId: model.stations[0]?.id || "",
         validation: [],
         selectedCell: null,
         toast
@@ -85,6 +87,10 @@ export function createStore(initialModel) {
     },
     setToast(toast) {
       state = { ...state, toast };
+      emit();
+    },
+    setPreviewStation(previewStationId) {
+      state = { ...state, previewStationId };
       emit();
     },
     commitSilentChanges(toast) {

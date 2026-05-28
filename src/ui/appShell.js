@@ -5,6 +5,7 @@ import { exportStandardExcel } from "../services/excelExport.js";
 import { buildLegacyProjectPayload } from "../services/legacyAdapter.js";
 import { clearDraftModel, readProjectFile, saveV2ProjectFile } from "../services/projectFiles.js";
 import { bindModelerTable, renderModelerTable } from "./modelerTable.js";
+import { bindProjectPreview, renderProjectPreview } from "./projectPreview.js";
 
 export function renderApp(root, store) {
   const redraw = () => {
@@ -39,7 +40,7 @@ export function renderApp(root, store) {
           <section class="modeler-panel">
             ${renderModelerTable(state)}
           </section>
-          <aside class="inspector">
+          <aside class="side-panel">
             ${renderInspector(state)}
           </aside>
         </main>
@@ -102,6 +103,7 @@ function bindShell(root, store) {
     store.setToast("已导出旧版 IDE 可打开的项目文件");
   });
   bindModelerTable(root, store);
+  bindProjectPreview(root, store);
 }
 
 function renderInspector(state) {
@@ -120,9 +122,12 @@ function renderInspector(state) {
         <dt>变量</dt><dd>${state.model.sensors.length + state.model.systemVariables.length + state.model.localVariables.length + state.model.globalVariables.length}</dd>
       </dl>
     </div>
-    <div class="inspector-card grow">
+    <div class="inspector-card">
       <h2>校验</h2>
       ${errors.length ? `<div class="error-list">${errors.slice(0, 30).map((item) => `<div class="error-item"><strong>${escapeHtml(item.section)} 第${item.row}行</strong><span>${escapeHtml(item.message)}</span></div>`).join("")}</div>` : `<p class="muted">点击校验查看问题。</p>`}
+    </div>
+    <div class="inspector-card preview-card grow">
+      ${renderProjectPreview(state)}
     </div>
   `;
 }
