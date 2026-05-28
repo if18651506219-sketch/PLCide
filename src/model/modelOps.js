@@ -37,8 +37,10 @@ export function createEmptyRow(collection, model) {
 
 export function syncStationSideEffects(model, previousStations) {
   const previousIds = new Set(previousStations.map((station) => station.id));
+  if (!model.programs) model.programs = {};
   model.stations.forEach((station) => {
     if (station.id && !previousIds.has(station.id)) model.timers.push(...stationTimers(station.id));
+    if (station.id && !Array.isArray(model.programs[station.id])) model.programs[station.id] = [];
   });
 }
 

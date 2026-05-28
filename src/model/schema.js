@@ -7,7 +7,9 @@ export const modelSections = [
   { id: "timers", label: "定时器" },
   { id: "systemVariables", label: "系统变量" },
   { id: "localVariables", label: "局部变量" },
-  { id: "globalVariables", label: "全局变量" }
+  { id: "globalVariables", label: "全局变量" },
+  { id: "programFlow", label: "程序流" },
+  { id: "codePreview", label: "代码预览" }
 ];
 
 export const tableSchemas = {

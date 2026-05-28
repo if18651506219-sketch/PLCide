@@ -162,6 +162,14 @@ a.secondary:hover {
   border-bottom: 1px solid var(--line);
 }
 
+.panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .panel-head h2,
 .inspector h2 {
   margin: 0;
@@ -348,6 +356,68 @@ dd {
 
 .muted {
   color: var(--muted);
+}
+
+.program-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.program-grid .edit-cell.multiline {
+  min-height: 58px;
+}
+
+.action-help {
+  border-left: 1px solid var(--line);
+  padding: 12px;
+  overflow: auto;
+  background: #fbfdff;
+}
+
+.action-help h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+
+.reference-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.reference-list code {
+  display: block;
+  padding: 7px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: white;
+  color: #174e84;
+  font-size: 12px;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.code-v2-wrap {
+  min-height: 0;
+  overflow: auto;
+  padding: 12px;
+  background: #f7fbff;
+}
+
+.code-v2 {
+  min-height: 100%;
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  color: #12314f;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre;
 }
 
 .preview-card {

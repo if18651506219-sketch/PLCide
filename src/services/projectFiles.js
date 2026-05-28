@@ -31,15 +31,15 @@ export function readProjectFile(file) {
 
 export function parseProjectFile(text) {
   const payload = JSON.parse(text);
-  if (payload?.fileType === V2_PROJECT_FILE && payload.model) return payload.model;
-  if (payload?.projectName && Array.isArray(payload.stations)) return payload;
+  if (payload?.fileType === V2_PROJECT_FILE && payload.model) return normalizeLoadedModel(payload.model);
+  if (payload?.projectName && Array.isArray(payload.stations)) return normalizeLoadedModel(payload);
   throw new Error("Invalid V2 project file");
 }
 
 export function loadDraftModel() {
   try {
     const payload = JSON.parse(localStorage.getItem(V2_DRAFT_KEY) || "null");
-    return payload?.model || null;
+    return payload?.model ? normalizeLoadedModel(payload.model) : null;
   } catch {
     return null;
   }
@@ -67,4 +67,13 @@ function downloadJson(filename, payload) {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+}
+
+function normalizeLoadedModel(model) {
+  const next = JSON.parse(JSON.stringify(model));
+  if (!next.programs) next.programs = {};
+  (next.stations || []).forEach((station) => {
+    if (!Array.isArray(next.programs[station.id])) next.programs[station.id] = [];
+  });
+  return next;
 }

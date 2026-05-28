@@ -6,6 +6,7 @@ export function createStore(initialModel) {
     model: cloneModel(initialModel),
     activeSection: "project",
     previewStationId: initialModel.stations[0]?.id || "",
+    programStationId: initialModel.stations[0]?.id || "",
     validation: [],
     selectedCell: null,
     toast: "V2 参数建模已就绪"
@@ -28,6 +29,7 @@ export function createStore(initialModel) {
         model: cloneModel(model),
         activeSection: "project",
         previewStationId: model.stations[0]?.id || "",
+        programStationId: model.stations[0]?.id || "",
         validation: [],
         selectedCell: null,
         toast
@@ -93,6 +95,56 @@ export function createStore(initialModel) {
       state = { ...state, previewStationId };
       emit();
     },
+    setProgramStation(programStationId) {
+      state = { ...state, programStationId };
+      emit();
+    },
+    addProgramStep() {
+      const model = cloneModel(state.model);
+      ensurePrograms(model);
+      const stationId = state.programStationId || model.stations[0]?.id;
+      const rows = model.programs[stationId] || [];
+      const maxStep = rows.reduce((max, row) => Math.max(max, Number(row.step) || 0), 0);
+      rows.push({ step: maxStep + 10 || 10, note: "新步骤", actions: "", condition: "", timeoutMs: 8000, nextStep: 0 });
+      model.programs[stationId] = rows;
+      state = { ...state, model, toast: "已添加程序步骤" };
+      emit();
+    },
+    deleteProgramStep(index) {
+      const model = cloneModel(state.model);
+      ensurePrograms(model);
+      const stationId = state.programStationId || model.stations[0]?.id;
+      model.programs[stationId]?.splice(index, 1);
+      state = { ...state, model, toast: "已删除程序步骤" };
+      emit();
+    },
+    setProgramCell(rowIndex, key, value, options = {}) {
+      const model = cloneModel(state.model);
+      ensurePrograms(model);
+      const stationId = state.programStationId || model.stations[0]?.id;
+      const row = model.programs[stationId]?.[rowIndex];
+      if (!row) return;
+      row[key] = key === "step" || key === "timeoutMs" || key === "nextStep" ? Number(value) || 0 : value;
+      state = { ...state, model };
+      if (options.emit !== false) emit();
+    },
+    pasteProgramMatrix(rowIndex, colIndex, columns, matrix) {
+      const model = cloneModel(state.model);
+      ensurePrograms(model);
+      const stationId = state.programStationId || model.stations[0]?.id;
+      const rows = model.programs[stationId] || [];
+      while (rows.length < rowIndex + matrix.length) rows.push({ step: (rows.length + 1) * 10, note: "", actions: "", condition: "", timeoutMs: 8000, nextStep: 0 });
+      matrix.forEach((rowValues, rOffset) => {
+        rowValues.forEach((value, cOffset) => {
+          const column = columns[colIndex + cOffset];
+          if (!column) return;
+          rows[rowIndex + rOffset][column.key] = column.numeric ? Number(value) || 0 : String(value ?? "").trim();
+        });
+      });
+      model.programs[stationId] = rows;
+      state = { ...state, model, toast: `已粘贴 ${matrix.length} 行程序流` };
+      emit();
+    },
     commitSilentChanges(toast) {
       state = { ...state, toast: toast || state.toast };
       emit();
@@ -104,4 +156,11 @@ export function createStore(initialModel) {
   }
 
   return api;
+}
+
+function ensurePrograms(model) {
+  if (!model.programs) model.programs = {};
+  model.stations.forEach((station) => {
+    if (!Array.isArray(model.programs[station.id])) model.programs[station.id] = [];
+  });
 }

@@ -1,4 +1,5 @@
 import { normalizeName, splitTargets } from "../model/modelOps.js";
+import { parseStepActions } from "./codeGenerator.js";
 
 export function buildLegacyProjectPayload(model) {
   const projectData = {
@@ -24,7 +25,8 @@ export function buildLegacyProjectPayload(model) {
   const state = {
     activeStationId: model.stations[0]?.id || "",
     stations: Object.fromEntries(model.stations.map((station) => [station.id, {
-      steps: [],
+      steps: legacyStepsForStation(model, station.id),
+      arrows: legacyArrowsForStation(model, station.id),
       customItems: {
         actuator: [],
         sensor: [],
@@ -83,6 +85,52 @@ function toActuator(item, model) {
       done: renderTemplate(doneTemplate, item.name, target, index + 1).replace(/[;；]+$/, "")
     }))
   };
+}
+
+function legacyStepsForStation(model, stationId) {
+  const rows = [...(model.programs?.[stationId] || [])].sort((a, b) => Number(a.step) - Number(b.step));
+  return rows.map((row, index) => ({
+    id: `v2_step_${stationId}_${Number(row.step) || index + 1}`,
+    systemNo: Number(row.step) || (index + 1) * 10,
+    comment: row.note || "",
+    forceActionArea: false,
+    hasConditionBox: Boolean(String(row.condition || "").trim()),
+    conditions: [],
+    branches: {},
+    ladder: null,
+    actions: parseStepActions(row.actions).map((action, actionIndex) => legacyAction(model, stationId, action, row, actionIndex)).filter(Boolean),
+    ai: null
+  }));
+}
+
+function legacyArrowsForStation(model, stationId) {
+  const count = model.programs?.[stationId]?.length || 0;
+  return Array.from({ length: Math.max(0, count - 1) }, (_, index) => index + 1);
+}
+
+function legacyAction(model, stationId, actionRef, row, actionIndex) {
+  const actuator = toActuatorFromReference(model, stationId, actionRef);
+  if (!actuator) return null;
+  const selected = actuator.actions.find((item) => item.label === actionRef.targetName) || actuator.actions[0];
+  return {
+    id: `v2_act_${stationId}_${row.step}_${actionIndex + 1}`,
+    deviceId: actuator.id,
+    deviceName: actuator.name,
+    type: actuator.type,
+    options: actuator.actions.map((action) => ({ ...action })),
+    actionId: selected.id,
+    actionLabel: selected.label,
+    command: selected.command,
+    done: selected.done,
+    waitDone: true,
+    timeoutMs: Number(row.timeoutMs) || 8000,
+    alarm: `${actuator.name}${selected.label}超时`
+  };
+}
+
+function toActuatorFromReference(model, stationId, actionRef) {
+  const item = model.actuatorInstances.find((candidate) => candidate.stationId === stationId && candidate.id === actionRef.actuatorId);
+  return item ? toActuator(item, model) : null;
 }
 
 function renderTemplate(template, instanceName, targetName, targetIndex) {

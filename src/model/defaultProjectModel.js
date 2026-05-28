@@ -45,7 +45,14 @@ export function defaultProjectModel() {
     localVariables: [],
     globalVariables: [
       { id: "globalVar1", name: "全局变量1", type: "BOOL", address: "GVL.全局变量1", expression: "全局变量1", comment: "" }
-    ]
+    ],
+    programs: {
+      station1: [
+        { step: 10, note: "移载到加热位", actions: "axisMT0:P3加热位", condition: "", timeoutMs: 8000, nextStep: 20 },
+        { step: 20, note: "上顶到加热位", actions: "axisMT1:P3加热位1", condition: "", timeoutMs: 8000, nextStep: 0 }
+      ],
+      station2: []
+    }
   };
 }
 

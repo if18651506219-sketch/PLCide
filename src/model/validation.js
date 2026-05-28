@@ -23,7 +23,37 @@ export function validateProjectModel(model) {
   entityRows(errors, model, model.systemVariables, "系统变量", false, false);
   entityRows(errors, model, model.localVariables, "局部变量", true, false);
   entityRows(errors, model, model.globalVariables, "全局变量", false, false);
+  validatePrograms(errors, model);
   return errors;
+}
+
+function validatePrograms(errors, model) {
+  const stationIds = new Set(model.stations.map((station) => station.id));
+  Object.entries(model.programs || {}).forEach(([stationId, rows]) => {
+    if (!stationIds.has(stationId)) errors.push(error("程序流", 1, `程序引用的工站不存在：${stationId}`));
+    const stepSeen = new Set();
+    rows.forEach((row, index) => {
+      const step = Number(row.step) || 0;
+      if (!step) errors.push(error("程序流", index + 1, "步骤号不能为空"));
+      if (stepSeen.has(step)) errors.push(error("程序流", index + 1, `步骤号重复：${step}`));
+      stepSeen.add(step);
+      validateProgramActions(errors, model, stationId, row.actions, index);
+    });
+  });
+}
+
+function validateProgramActions(errors, model, stationId, value, rowIndex) {
+  const actuators = model.actuatorInstances.filter((item) => item.stationId === stationId);
+  String(value || "").split(/[，,\n]/).map((item) => item.trim()).filter(Boolean).forEach((item) => {
+    const [actuatorId, targetName] = item.split(":").map((part) => part.trim());
+    const actuator = actuators.find((candidate) => candidate.id === actuatorId);
+    if (!actuator) {
+      errors.push(error("程序流", rowIndex + 1, `动作引用的执行器不存在：${item}`));
+      return;
+    }
+    const targets = String(actuator.targets || "").split(/[，,\n]/).map((target) => target.trim()).filter(Boolean);
+    if (targetName && !targets.includes(targetName)) errors.push(error("程序流", rowIndex + 1, `动作目标不存在：${item}`));
+  });
 }
 
 function entityRows(errors, model, rows, label, needsStation, needsClass) {

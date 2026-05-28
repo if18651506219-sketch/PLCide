@@ -5,6 +5,7 @@ import { exportStandardExcel } from "../services/excelExport.js";
 import { buildLegacyProjectPayload } from "../services/legacyAdapter.js";
 import { clearDraftModel, readProjectFile, saveV2ProjectFile } from "../services/projectFiles.js";
 import { bindModelerTable, renderModelerTable } from "./modelerTable.js";
+import { bindProgramFlow, renderCodePreview, renderProgramFlow } from "./programFlow.js";
 import { bindProjectPreview, renderProjectPreview } from "./projectPreview.js";
 
 export function renderApp(root, store) {
@@ -38,7 +39,7 @@ export function renderApp(root, store) {
             ${modelSections.map((section) => `<button class="${section.id === state.activeSection ? "active" : ""}" data-section="${section.id}">${section.label}</button>`).join("")}
           </aside>
           <section class="modeler-panel">
-            ${renderModelerTable(state)}
+            ${renderMainPanel(state)}
           </section>
           <aside class="side-panel">
             ${renderInspector(state)}
@@ -103,7 +104,14 @@ function bindShell(root, store) {
     store.setToast("已导出旧版 IDE 可打开的项目文件");
   });
   bindModelerTable(root, store);
+  bindProgramFlow(root, store);
   bindProjectPreview(root, store);
+}
+
+function renderMainPanel(state) {
+  if (state.activeSection === "programFlow") return renderProgramFlow(state);
+  if (state.activeSection === "codePreview") return renderCodePreview(state);
+  return renderModelerTable(state);
 }
 
 function renderInspector(state) {

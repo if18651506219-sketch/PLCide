@@ -42,12 +42,34 @@ export function parseStandardExcelText(text) {
       model.projectName = matrix[1]?.[0] || model.projectName;
       return;
     }
+    if (sheetName === "程序流") {
+      model.programs = programsFromMatrix(matrix, model);
+      return;
+    }
     const section = SHEET_TO_SECTION[sheetName];
     if (!section) return;
     model[section] = rowsFromMatrix(section, matrix);
   });
 
   return model;
+}
+
+function programsFromMatrix(matrix, model) {
+  const headers = matrix[0] || [];
+  const programs = Object.fromEntries(model.stations.map((station) => [station.id, []]));
+  matrix.slice(1).filter((row) => row.some((cell) => String(cell).trim())).forEach((row) => {
+    const stationId = valueFor(headers, row, "所属站");
+    if (!programs[stationId]) programs[stationId] = [];
+    programs[stationId].push({
+      step: Number(valueFor(headers, row, "步骤号")) || 0,
+      note: valueFor(headers, row, "节点注释"),
+      actions: valueFor(headers, row, "动作"),
+      condition: valueFor(headers, row, "附加条件"),
+      timeoutMs: Number(valueFor(headers, row, "超时ms")) || 8000,
+      nextStep: Number(valueFor(headers, row, "下一步")) || 0
+    });
+  });
+  return programs;
 }
 
 function rowsFromMatrix(section, matrix) {
@@ -64,6 +86,11 @@ function rowsFromMatrix(section, matrix) {
       });
       return item;
     });
+}
+
+function valueFor(headers, row, label) {
+  const index = headers.indexOf(label);
+  return index >= 0 ? row[index] || "" : "";
 }
 
 function nextTable(node) {
