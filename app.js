@@ -23,6 +23,7 @@ let codeSuggestIndex = 0;
 let lastHighlightedCode = "";
 let lastHighlightedToken = "";
 let activeTargetEditor = null;
+let libraryEditPointerDown = false;
 
 const ST_KEYWORDS = new Set([
   "CASE", "OF", "END_CASE", "IF", "THEN", "END_IF", "TRUE", "FALSE", "NOT", "AND", "OR",
@@ -210,8 +211,12 @@ function bindEvents() {
     }
   });
   els.stationScroller.addEventListener("pointerdown", (event) => {
-    if (event.target.closest("[data-library-rename], [data-library-comment], [data-library-type]")) {
+    if (event.target.closest("[data-library-rename], [data-library-comment], [data-library-type], [data-library-target]")) {
+      libraryEditPointerDown = true;
       event.preventDefault();
+      requestAnimationFrame(() => {
+        libraryEditPointerDown = false;
+      });
     }
   });
   els.stationScroller.addEventListener("pointerdown", (event) => {
@@ -1319,6 +1324,8 @@ function handleStationClick(event) {
   const targetButton = event.target.closest("[data-library-target]");
   if (targetButton) {
     event.stopPropagation();
+    const activeInput = els.stationScroller.querySelector("[data-library-edit-input]");
+    if (activeInput && editingLibraryItem) saveLibraryInput(activeInput, { render: false });
     const itemNode = targetButton.closest(".library-item");
     openTargetEditor(itemNode);
     return;
@@ -1722,7 +1729,7 @@ function handleStationChange(event) {
 
   const libraryInput = event.target.closest("[data-library-edit-input]");
   if (libraryInput) {
-    saveLibraryInput(libraryInput);
+    saveLibraryInput(libraryInput, { keepEditing: libraryInput.matches("[data-library-type-input]") });
     return;
   }
 
@@ -1804,7 +1811,7 @@ function handleStationFocusOut(event) {
   const stepComment = event.target.closest("[data-step-comment]");
   if (stepComment) updateStepComment(stepComment);
   const libraryInput = event.target.closest("[data-library-edit-input]");
-  if (libraryInput) saveLibraryInput(libraryInput);
+  if (libraryInput && !libraryEditPointerDown) saveLibraryInput(libraryInput);
   const compareValue = event.target.closest("[data-compare-value]");
   if (compareValue) updateConditionCompare(compareValue);
 }
@@ -2106,6 +2113,7 @@ function saveLibraryInput(input, options = {}) {
   const { stationId, kind, id } = editingLibraryItem;
   const value = input.value.trim();
   if (!value && ["name", "type", "targets"].includes(editingLibraryItem.field)) return;
+  const savedField = editingLibraryItem.field;
   const direct = getMutableLibraryCollection(stationId, kind).find((candidate) => candidate.id === id);
   if (editingLibraryItem.field === "comment") {
     if (direct) {
@@ -2136,15 +2144,23 @@ function saveLibraryInput(input, options = {}) {
       }
     }
   }
-  editingLibraryItem = null;
+  editingLibraryItem = options.keepEditing ? { stationId, kind, id, field: savedField } : null;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   renderCodePreview();
   renderAiSummary();
   updateCodeEditBadges();
   if (options.render === false) return;
   const itemNode = input.closest(".library-item");
-  if (itemNode) refreshLibraryItem(itemNode);
-  else renderAll();
+  if (itemNode) {
+    const nextNode = refreshLibraryItem(itemNode);
+    if (options.keepEditing) {
+      requestAnimationFrame(() => {
+        focusWithoutScroll(getLibraryEditInput(nextNode, savedField));
+      });
+    }
+  } else {
+    renderAll();
+  }
 }
 
 function beginLibraryInlineEdit(itemNode, field) {
@@ -2173,9 +2189,16 @@ function refreshLibraryItem(itemNode) {
   const { stationId, kind, id } = itemNode.dataset;
   const item = findLibraryItem(stationId, kind, id);
   if (!item) return itemNode;
+  const groups = itemNode.closest(".library-groups");
+  const scrollTop = groups?.scrollTop || 0;
+  const scrollLeft = groups?.scrollLeft || 0;
   itemNode.className = `library-item ${kind === "actuator" ? item.type : kind}`;
   const text = itemNode.querySelector(".library-item-text");
   if (text) text.innerHTML = renderLibraryItemText(stationId, kind, item);
+  if (groups) {
+    groups.scrollTop = scrollTop;
+    groups.scrollLeft = scrollLeft;
+  }
   return itemNode;
 }
 
