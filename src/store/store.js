@@ -167,6 +167,20 @@ export function createStore(initialModel) {
       state = { ...state, model, selectedProgramStepIndex: index, toast: `已插入动作：${actionText}` };
       emit();
     },
+    appendConditionToSelectedStep(expressionText) {
+      const model = cloneModel(state.model);
+      ensurePrograms(model);
+      const stationId = state.programStationId || model.stations[0]?.id;
+      const rows = model.programs[stationId] || [];
+      if (!rows.length) rows.push({ step: 10, note: "新步骤", actions: "", condition: "", timeoutMs: 8000, nextStep: 0 });
+      const index = Math.max(0, Math.min(state.selectedProgramStepIndex || 0, rows.length - 1));
+      const row = rows[index];
+      const existing = String(row.condition || "").trim();
+      row.condition = existing ? `${existing} AND ${expressionText}` : expressionText;
+      model.programs[stationId] = rows;
+      state = { ...state, model, selectedProgramStepIndex: index, toast: `已插入条件：${expressionText}` };
+      emit();
+    },
     commitSilentChanges(toast) {
       state = { ...state, toast: toast || state.toast };
       emit();

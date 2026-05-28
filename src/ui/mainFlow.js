@@ -17,11 +17,11 @@ export function renderMainFlow(state) {
     <div class="main-flow-layout">
       <aside class="flow-library">
         ${libraryGroup("执行器", actuatorRows(state.model, station?.id), true)}
-        ${libraryGroup("传感器", variableRows(state.model.sensors, station?.id))}
+        ${libraryGroup("传感器", variableRows(state.model.sensors, station?.id), false, true)}
         ${libraryGroup("定时器", timerRows(state.model.timers, station?.id))}
-        ${libraryGroup("系统变量", variableRows(state.model.systemVariables))}
-        ${libraryGroup("局部变量", variableRows(state.model.localVariables, station?.id))}
-        ${libraryGroup("全局变量", variableRows(state.model.globalVariables))}
+        ${libraryGroup("系统变量", variableRows(state.model.systemVariables), false, true)}
+        ${libraryGroup("局部变量", variableRows(state.model.localVariables, station?.id), false, true)}
+        ${libraryGroup("全局变量", variableRows(state.model.globalVariables), false, true)}
       </aside>
       <section class="flow-board">
         ${steps.length ? steps.map((step, index) => flowStep(step, index, index === (state.selectedProgramStepIndex || 0))).join("") : `<div class="empty-flow">当前工站还没有程序步骤。点击“添加步骤”开始。</div>`}
@@ -59,6 +59,9 @@ export function bindMainFlow(root, store) {
   root.querySelectorAll("[data-insert-action]").forEach((button) => {
     button.addEventListener("click", () => store.appendActionToSelectedStep(button.dataset.insertAction));
   });
+  root.querySelectorAll("[data-insert-condition]").forEach((button) => {
+    button.addEventListener("click", () => store.appendConditionToSelectedStep(button.dataset.insertCondition));
+  });
 }
 
 function flowStep(step, index, selected) {
@@ -66,9 +69,18 @@ function flowStep(step, index, selected) {
     <article class="flow-step-card ${selected ? "is-selected" : ""}" data-main-step="${index}">
       <div class="flow-step-no">S<span class="flow-inline-edit" contenteditable="true" spellcheck="false" data-main-cell data-row="${index}" data-key="step">${escapeHtml(step.step || (index + 1) * 10)}</span></div>
       <div class="flow-step-body">
-        <h3 class="flow-card-edit" contenteditable="true" spellcheck="false" data-main-cell data-row="${index}" data-key="note">${escapeHtml(step.note || "未命名步骤")}</h3>
-        <label class="flow-step-field"><span>动作</span><div class="flow-card-edit multiline" contenteditable="true" spellcheck="false" data-main-cell data-row="${index}" data-key="actions">${escapeHtml(step.actions || "")}</div></label>
-        <label class="flow-step-field"><span>条件</span><div class="flow-card-edit" contenteditable="true" spellcheck="false" data-main-cell data-row="${index}" data-key="condition">${escapeHtml(step.condition || "")}</div></label>
+        <header class="node-title-row">
+          <h3 class="flow-card-edit" contenteditable="true" spellcheck="false" data-main-cell data-row="${index}" data-key="note">${escapeHtml(step.note || "未命名步骤")}</h3>
+          <span class="node-status">${selected ? "选中" : "节点"}</span>
+        </header>
+        <div class="node-zone condition-zone">
+          <div class="node-zone-title">条件框</div>
+          <div class="flow-card-edit condition-edit" contenteditable="true" spellcheck="false" data-main-cell data-row="${index}" data-key="condition">${escapeHtml(step.condition || "")}</div>
+        </div>
+        <div class="node-zone action-zone">
+          <div class="node-zone-title">动作区</div>
+          <div class="flow-card-edit multiline action-edit" contenteditable="true" spellcheck="false" data-main-cell data-row="${index}" data-key="actions">${escapeHtml(step.actions || "")}</div>
+        </div>
         <div class="flow-step-field-row">
           <label class="flow-step-field small"><span>超时ms</span><div class="flow-card-edit" contenteditable="true" spellcheck="false" data-main-cell data-row="${index}" data-key="timeoutMs">${escapeHtml(step.timeoutMs || 0)}</div></label>
           <label class="flow-step-field small"><span>下一步</span><div class="flow-card-edit" contenteditable="true" spellcheck="false" data-main-cell data-row="${index}" data-key="nextStep">${escapeHtml(step.nextStep ?? 0)}</div></label>
@@ -80,7 +92,7 @@ function flowStep(step, index, selected) {
   `;
 }
 
-function libraryGroup(title, rows, insertable = false) {
+function libraryGroup(title, rows, actionInsertable = false, conditionInsertable = false) {
   return `
     <section class="library-group-v2">
       <header><span>${escapeHtml(title)}</span><strong>${rows.length}</strong></header>
@@ -88,7 +100,8 @@ function libraryGroup(title, rows, insertable = false) {
         <div class="library-row-v2">
           <div>${escapeHtml(row.title)}</div>
           <small>${escapeHtml(row.meta)}</small>
-          ${insertable && row.actions?.length ? `<div class="library-action-buttons">${row.actions.map((action) => `<button type="button" data-insert-action="${escapeHtml(action)}">${escapeHtml(action.split(":").slice(1).join(":") || action)}</button>`).join("")}</div>` : ""}
+          ${actionInsertable && row.actions?.length ? `<div class="library-action-buttons">${row.actions.map((action) => `<button type="button" data-insert-action="${escapeHtml(action)}">${escapeHtml(action.split(":").slice(1).join(":") || action)}</button>`).join("")}</div>` : ""}
+          ${conditionInsertable && row.expression ? `<div class="library-action-buttons"><button type="button" data-insert-condition="${escapeHtml(row.expression)}">作为条件</button></div>` : ""}
         </div>
       `).join("") : `<div class="library-empty">无</div>`}
     </section>
@@ -106,7 +119,8 @@ function actuatorRows(model, stationId) {
 function variableRows(rows, stationId = null) {
   return rows.filter((item) => stationId == null || item.stationId === stationId).map((item) => ({
     title: item.name,
-    meta: `${item.type || "BOOL"} · ${item.address || item.expression || item.id}`
+    meta: `${item.type || "BOOL"} · ${item.address || item.expression || item.id}`,
+    expression: item.expression || item.id
   }));
 }
 

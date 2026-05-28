@@ -556,6 +556,30 @@ dd {
   box-shadow: 0 8px 22px rgba(30, 64, 100, 0.12);
 }
 
+.node-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.node-title-row h3 {
+  flex: 1;
+}
+
+.node-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #edf6ff;
+  color: #174e84;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .flow-step-card.is-selected {
   border-color: #1f6feb;
   box-shadow: 0 0 0 2px rgba(31, 111, 235, 0.18), 0 10px 24px rgba(30, 64, 100, 0.14);
@@ -580,6 +604,41 @@ dd {
 .flow-step-body h3 {
   margin: 0 0 6px;
   font-size: 15px;
+}
+
+.node-zone {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fbfdff;
+  margin-top: 8px;
+}
+
+.node-zone-title {
+  padding: 6px 9px;
+  border-bottom: 1px solid var(--line);
+  background: #f5f9fd;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.condition-zone {
+  border-color: #9fd0b7;
+}
+
+.condition-zone .node-zone-title {
+  background: #eefbf4;
+  color: #11623e;
+}
+
+.action-zone {
+  border-color: #aac7ec;
+}
+
+.action-zone .node-zone-title {
+  background: #eef5ff;
+  color: #174e84;
 }
 
 .flow-step-meta,
@@ -617,6 +676,12 @@ dd {
   background: #f8fbff;
   outline: none;
   white-space: pre-wrap;
+}
+
+.node-zone .flow-card-edit {
+  border-radius: 0;
+  border: 0;
+  background: white;
 }
 
 .flow-card-edit.multiline {
