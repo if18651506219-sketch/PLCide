@@ -180,9 +180,10 @@ function bindModelerModal(modal) {
   modal.querySelector("[data-modeler-validate]")?.addEventListener("click", () => showModelerValidation(validateModelerModel()));
   modal.querySelector("[data-modeler-export]")?.addEventListener("click", exportModelerExcel);
   modal.querySelector("[data-modeler-import]")?.addEventListener("click", importModelerToIde);
-  modal.querySelectorAll("[data-modeler-field]").forEach((field) => {
-    field.addEventListener("input", handleModelerInput);
-    field.addEventListener("change", handleModelerInput);
+  modal.querySelectorAll("[data-modeler-cell]").forEach((cell) => {
+    cell.addEventListener("input", handleModelerCellInput);
+    cell.addEventListener("paste", handleModelerPaste);
+    cell.addEventListener("keydown", handleModelerCellKeydown);
   });
   modal.querySelectorAll("[data-modeler-add]").forEach((button) => button.addEventListener("click", () => addModelerRow(button.dataset.modelerAdd)));
   modal.querySelectorAll("[data-modeler-delete]").forEach((button) => button.addEventListener("click", () => deleteModelerRow(button.dataset.modelerDelete, Number(button.dataset.index))));
@@ -203,8 +204,13 @@ function renderModelerSection() {
 function renderProjectSection() {
   return `
     <div class="modeler-section-head"><h3>项目名称</h3></div>
-    <div class="modeler-form-grid">
-      ${renderModelerField("项目名称", "projectName", modelerState.projectName, "input", "", "")}
+    <div class="modeler-table-wrap">
+      <table class="modeler-table modeler-table-compact">
+        <thead><tr><th>项目名称</th></tr></thead>
+        <tbody>
+          <tr><td>${renderModelerEditableCell("", 0, "projectName", "text", modelerState.projectName, 0)}</td></tr>
+        </tbody>
+      </table>
     </div>
   `;
 }
@@ -270,6 +276,7 @@ function renderModelerTable(title, collection, columns) {
         <button class="secondary small" type="button" data-modeler-add="${collection}">添加</button>
       </div>
     </div>
+    <p class="modeler-table-hint">可从 Excel 复制多行多列后直接粘贴到任意单元格。</p>
     <div class="modeler-table-wrap">
       <table class="modeler-table">
         <thead>
@@ -278,7 +285,7 @@ function renderModelerTable(title, collection, columns) {
         <tbody>
           ${rows.map((row, index) => `
             <tr>
-              ${columns.map(([field, , type]) => `<td class="modeler-cell">${renderModelerCell(collection, index, field, type, row[field])}</td>`).join("")}
+              ${columns.map(([field, , type], colIndex) => `<td class="modeler-cell">${renderModelerEditableCell(collection, index, field, type, row[field], colIndex)}</td>`).join("")}
               <td><button class="modeler-delete" type="button" data-modeler-delete="${collection}" data-index="${index}">删除</button></td>
             </tr>
           `).join("")}
@@ -289,36 +296,55 @@ function renderModelerTable(title, collection, columns) {
   `;
 }
 
-function renderModelerField(label, field, value, type, collection, index) {
-  return `
-    <div class="modeler-field">
-      <label>${escapeHtml(label)}</label>
-      <input data-modeler-field="${field}" data-collection="${collection}" data-index="${index}" value="${escapeHtml(value)}" />
-    </div>
-  `;
+function renderModelerEditableCell(collection, index, field, type, value, col) {
+  const hint = getModelerCellHint(type);
+  return `<div class="modeler-edit-cell" contenteditable="true" spellcheck="false" data-modeler-cell data-modeler-field="${field}" data-collection="${collection}" data-index="${index}" data-col="${col}" data-type="${type}" data-hint="${escapeHtml(hint)}">${escapeHtml(formatModelerCellValue(value))}</div>`;
 }
 
-function renderModelerCell(collection, index, field, type, value) {
-  const attr = `data-modeler-field="${field}" data-collection="${collection}" data-index="${index}"`;
-  if (type === "textarea") return `<textarea ${attr}>${escapeHtml(value || "")}</textarea>`;
-  if (type === "number") return `<input type="number" ${attr} value="${escapeHtml(value || "")}" />`;
-  if (type === "station") {
-    return `<select ${attr}>${modelerState.stations.map((station) => `<option value="${escapeHtml(station.id)}" ${station.id === value ? "selected" : ""}>${escapeHtml(station.name || station.id)}</option>`).join("")}</select>`;
-  }
-  if (type === "class") {
-    return `<select ${attr}>${modelerState.actuatorClasses.map((klass) => `<option value="${escapeHtml(klass.id)}" ${klass.id === value ? "selected" : ""}>${escapeHtml(klass.name || klass.id)}</option>`).join("")}</select>`;
-  }
-  if (type === "type") {
-    return `<select ${attr}>${["BOOL", "INT", "DINT", "REAL", "TIME", "STRING"].map((item) => `<option value="${item}" ${item === value ? "selected" : ""}>${item}</option>`).join("")}</select>`;
-  }
-  return `<input ${attr} value="${escapeHtml(value || "")}" />`;
+function getModelerCellHint(type) {
+  if (type === "station") return "填站ID，例如 station1";
+  if (type === "class") return "填类ID，例如 cylinder";
+  if (type === "type") return "BOOL/INT/DINT/REAL/TIME/STRING";
+  if (type === "number") return "数字";
+  return "";
 }
 
-function handleModelerInput(event) {
-  const field = event.target.dataset.modelerField;
-  const collection = event.target.dataset.collection;
-  const index = Number(event.target.dataset.index);
-  const value = event.target.value;
+function formatModelerCellValue(value) {
+  return String(value ?? "");
+}
+
+function handleModelerCellInput(event) {
+  const cell = event.target.closest("[data-modeler-cell]");
+  if (!cell) return;
+  setModelerCellValue(cell, cell.textContent);
+}
+
+function handleModelerPaste(event) {
+  const cell = event.target.closest("[data-modeler-cell]");
+  if (!cell) return;
+  const text = event.clipboardData?.getData("text/plain") || "";
+  if (!text) return;
+  event.preventDefault();
+  pasteModelerMatrix(cell, parseClipboardMatrix(text));
+  renderModeler();
+}
+
+function handleModelerCellKeydown(event) {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    moveModelerFocus(event.target.closest("[data-modeler-cell]"), 1, 0);
+  }
+  if (event.key === "Tab") {
+    event.preventDefault();
+    moveModelerFocus(event.target.closest("[data-modeler-cell]"), 0, event.shiftKey ? -1 : 1);
+  }
+}
+
+function setModelerCellValue(cell, rawValue) {
+  const field = cell.dataset.modelerField;
+  const collection = cell.dataset.collection;
+  const index = Number(cell.dataset.index);
+  const value = normalizeModelerCellValue(rawValue, cell.dataset.type);
   if (!collection) {
     modelerState[field] = value;
     return;
@@ -328,13 +354,67 @@ function handleModelerInput(event) {
   }
 }
 
-function addModelerRow(collection) {
+function normalizeModelerCellValue(value, type) {
+  const text = String(value ?? "").replace(/\u00a0/g, " ").trim();
+  if (type === "number") return String(Number(text) || 0);
+  return text;
+}
+
+function pasteModelerMatrix(startCell, matrix) {
+  const collection = startCell.dataset.collection;
+  const startRow = Number(startCell.dataset.index);
+  const startCol = Number(startCell.dataset.col);
+  if (!collection) {
+    modelerState[startCell.dataset.modelerField] = matrix[0]?.[0] || "";
+    return;
+  }
+  const columns = getModelerColumnsForCollection(collection);
+  matrix.forEach((rowValues, rowOffset) => {
+    const rowIndex = startRow + rowOffset;
+    ensureModelerRows(collection, rowIndex + 1);
+    rowValues.forEach((value, colOffset) => {
+      const column = columns[startCol + colOffset];
+      if (!column) return;
+      const [field, , type] = column;
+      modelerState[collection][rowIndex][field] = field === "defaultMs" ? Number(value) || 0 : normalizeModelerCellValue(value, type);
+    });
+  });
+}
+
+function parseClipboardMatrix(text) {
+  return String(text)
+    .replace(/\r/g, "")
+    .split("\n")
+    .filter((line, index, lines) => line.length || index < lines.length - 1)
+    .map((line) => line.split("\t"));
+}
+
+function getModelerColumnsForCollection(collection) {
+  return {
+    stations: [["id", "站ID", "text"], ["name", "站名称", "text"]],
+    actuatorClasses: [["id", "类ID", "text"], ["name", "类名称", "text"], ["defaultTargets", "默认目标列表", "text"], ["structTemplate", "结构体内容", "text"], ["executeTemplate", "执行范例", "text"], ["doneTemplate", "完成判断范例", "text"]],
+    actuatorInstances: [["stationId", "所属站", "station"], ["classId", "执行器类", "class"], ["id", "实例ID", "text"], ["name", "实例名", "text"], ["targets", "目标列表", "text"], ["executeTemplate", "执行范例覆盖", "text"], ["doneTemplate", "完成判断覆盖", "text"]],
+    sensors: [["stationId", "所属站", "station"], ["id", "变量ID", "text"], ["name", "名称", "text"], ["type", "类型", "type"], ["address", "地址", "text"], ["expression", "表达式", "text"], ["comment", "备注", "text"]],
+    timers: [["stationId", "所属站", "station"], ["id", "定时器ID", "text"], ["name", "名称", "text"], ["defaultMs", "默认时间ms", "number"]],
+    systemVariables: [["id", "变量ID", "text"], ["name", "名称", "text"], ["type", "类型", "type"], ["address", "地址", "text"], ["expression", "表达式", "text"], ["comment", "备注", "text"]],
+    localVariables: [["stationId", "所属站", "station"], ["id", "变量ID", "text"], ["name", "名称", "text"], ["type", "类型", "type"], ["address", "地址", "text"], ["expression", "表达式", "text"], ["comment", "备注", "text"]],
+    globalVariables: [["id", "变量ID", "text"], ["name", "名称", "text"], ["type", "类型", "type"], ["address", "地址", "text"], ["expression", "表达式", "text"], ["comment", "备注", "text"]]
+  }[collection] || [];
+}
+
+function ensureModelerRows(collection, count) {
+  while (modelerState[collection].length < count) addModelerRowData(collection);
+}
+
+function addModelerRowData(collection) {
   if (collection === "stations") {
     const index = modelerState.stations.length + 1;
     const id = `station${index}`;
     modelerState.stations.push({ id, name: `站${index}` });
     modelerState.timers.push(...createDefaultStationTimers(id));
-  } else if (collection === "actuatorClasses") {
+    return;
+  }
+  if (collection === "actuatorClasses") {
     modelerState.actuatorClasses.push({
       id: `custom${modelerState.actuatorClasses.length + 1}`,
       name: "自定义执行器",
@@ -343,7 +423,9 @@ function addModelerRow(collection) {
       executeTemplate: "{实例名}.{目标名} := TRUE",
       doneTemplate: "{实例名}.{目标名}DONE"
     });
-  } else if (collection === "actuatorInstances") {
+    return;
+  }
+  if (collection === "actuatorInstances") {
     const stationId = modelerState.stations[0]?.id || "station1";
     const klass = modelerState.actuatorClasses[0] || createDefaultActuatorClasses()[0];
     modelerState.actuatorInstances.push({
@@ -355,19 +437,36 @@ function addModelerRow(collection) {
       executeTemplate: "",
       doneTemplate: ""
     });
-  } else if (collection === "timers") {
-    modelerState.timers.push({ stationId: modelerState.stations[0]?.id || "", id: `timer_${uid("item")}`, name: "新定时器", defaultMs: 1000 });
-  } else {
-    modelerState[collection].push({
-      stationId: collection === "systemVariables" || collection === "globalVariables" ? "" : (modelerState.stations[0]?.id || ""),
-      id: `var_${uid("item")}`,
-      name: "新变量",
-      type: "BOOL",
-      address: "",
-      expression: "NewVar",
-      comment: ""
-    });
+    return;
   }
+  if (collection === "timers") {
+    modelerState.timers.push({ stationId: modelerState.stations[0]?.id || "", id: `timer_${uid("item")}`, name: "新定时器", defaultMs: 1000 });
+    return;
+  }
+  modelerState[collection].push({
+    stationId: collection === "systemVariables" || collection === "globalVariables" ? "" : (modelerState.stations[0]?.id || ""),
+    id: `var_${uid("item")}`,
+    name: "新变量",
+    type: "BOOL",
+    address: "",
+    expression: "NewVar",
+    comment: ""
+  });
+}
+
+function moveModelerFocus(cell, rowDelta, colDelta) {
+  if (!cell) return;
+  const collection = cell.dataset.collection;
+  const row = Number(cell.dataset.index) + rowDelta;
+  const col = Number(cell.dataset.col) + colDelta;
+  const selector = collection
+    ? `[data-modeler-cell][data-collection="${collection}"][data-index="${row}"][data-col="${col}"]`
+    : `[data-modeler-cell][data-collection=""][data-index="0"][data-col="0"]`;
+  document.querySelector(selector)?.focus();
+}
+
+function addModelerRow(collection) {
+  addModelerRowData(collection);
   renderModeler();
 }
 
