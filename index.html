@@ -20,6 +20,7 @@
           <button id="newProjectBtn" class="secondary">新建</button>
           <button id="openProjectBtn" class="secondary">打开</button>
           <button id="saveProjectBtn" class="secondary">保存</button>
+          <button id="modelerBtn" class="secondary">参数建模</button>
           <button id="compileBtn" class="secondary">编译</button>
           <button id="tidyBtn" class="secondary">整理</button>
           <button id="toggleVariableBtn" class="secondary">变量</button>
@@ -81,10 +82,12 @@
     <textarea id="clipboardFallback" class="clipboard-fallback" aria-hidden="true"></textarea>
     <input id="projectFileInput" class="file-input-hidden" type="file" accept=".json,.plcide,application/json" />
     <input id="variableExcelInput" class="file-input-hidden" type="file" accept=".xls,.html,.htm,.csv,text/html,text/csv,application/vnd.ms-excel" />
+    <div id="modelerModal" class="modal-backdrop" hidden></div>
     <script src="data.js?v=split-1"></script>
     <script src="utils.js?v=split-1"></script>
     <script src="app.js?v=split-1"></script>
     <script src="codegen.js?v=split-1"></script>
     <script src="project-io.js?v=split-1"></script>
+    <script src="modeler.js?v=modeler-1"></script>
   </body>
 </html>
