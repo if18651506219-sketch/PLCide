@@ -534,11 +534,9 @@ body.tool-selected .node-condition:hover {
 }
 
 .flow-arrow.is-top-insert {
-  height: 42px;
-  margin-top: 4px;
-  opacity: 0.82;
-  background: rgba(238, 247, 255, 0.58);
-  border: 1px dashed rgba(93, 146, 190, 0.55);
+  height: 34px;
+  margin-top: 2px;
+  opacity: 0.72;
 }
 
 .flow-arrow span {
@@ -568,46 +566,6 @@ body.tool-selected .node-condition:hover {
 .flow-arrow:hover span {
   width: 3px;
   background: #167d4c;
-}
-
-.flow-arrow-hint,
-.flow-arrow-label {
-  position: absolute;
-  top: 8px;
-  transform: translateX(10px);
-  height: 20px;
-  padding: 0 7px;
-  border-radius: 999px;
-  border: 1px solid #cfe0ee;
-  background: rgba(255, 255, 255, 0.92);
-  color: #416071;
-  font-size: 10px;
-  font-weight: 800;
-  line-height: 18px;
-  box-shadow: 0 2px 5px rgba(32, 58, 78, 0.08);
-  z-index: 2;
-}
-
-.flow-arrow-hint {
-  left: 50%;
-  cursor: pointer;
-  transform: translateX(-50%);
-}
-
-.flow-arrow-label {
-  cursor: pointer;
-}
-
-.flow-arrow-label:hover {
-  border-color: #7eb9df;
-  color: #0d6ea8;
-  background: #eef8ff;
-}
-
-.flow-arrow-hint:hover {
-  border-color: #7eb9df;
-  color: #0d6ea8;
-  background: #eef8ff;
 }
 
 .condition-row,

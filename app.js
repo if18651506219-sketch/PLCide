@@ -622,33 +622,14 @@ function renderCanvas(stationId) {
   if (!work.steps.length) {
     return `<div class="empty-canvas" data-empty-canvas="${stationId}"></div>`;
   }
-  const firstStep = work.steps[0];
-  const parts = [renderFlowArrow(stationId, 0, {
-    top: true,
-    label: `插入到顶部 / S${getStepSystemNo(firstStep, 0)}`
-  })];
+  const parts = [renderFlowArrow(stationId, 0, { top: true })];
   work.steps.forEach((step, index) => {
     parts.push(renderStep(stationId, step, index, coilLinks));
     const coilCount = getStepCoilCount(step);
     if (index < work.steps.length - 1 || work.arrows.includes(index + 1) || coilCount > 0) {
-      const labels = coilLinks
-        .filter((link) => link.sourceStepId === step.id)
-        .map((link, linkIndex) => ({
-          text: `S${link.targetStepNo}`,
-          targetStepId: link.resolvedTargetStepId,
-          title: `线圈${linkIndex + 1} 跳转到 S${link.targetStepNo}`
-        }));
-      if (!labels.length && work.steps[index + 1]) {
-        labels.push({
-          text: `S${getStepSystemNo(work.steps[index + 1], index + 1)}`,
-          targetStepId: work.steps[index + 1].id,
-          title: `下一步 S${getStepSystemNo(work.steps[index + 1], index + 1)}`
-        });
-      }
       parts.push(renderFlowArrow(stationId, index + 1, {
         count: Math.max(1, coilCount),
-        coilDriven: coilCount > 0,
-        labels
+        coilDriven: coilCount > 0
       }));
     }
   });
@@ -1203,20 +1184,9 @@ function renderFlowArrow(stationId, index, options = {}) {
     const left = count === 1 ? 50 : 50 + (arrowIndex - (count - 1) / 2) * 16;
     return `<span style="left:${left}%"></span>`;
   }).join("");
-  const labels = Array.isArray(options.labels) ? options.labels : [];
-  const labelMarkup = labels.length
-    ? labels.map((label, arrowIndex) => {
-      const left = count === 1 ? 50 : 50 + (arrowIndex - (count - 1) / 2) * 16;
-      const jumpAttrs = label.targetStepId
-        ? ` data-jump-step="${label.targetStepId}" data-jump-station="${stationId}"`
-        : "";
-      return `<button class="flow-arrow-label" type="button" style="left:${left}%"${jumpAttrs} title="${escapeHtml(label.title || label.text)}">${escapeHtml(label.text)}</button>`;
-    }).join("")
-    : (options.label ? `<button class="flow-arrow-hint" type="button"${options.targetStepId ? ` data-jump-step="${options.targetStepId}" data-jump-station="${stationId}"` : ""}>${escapeHtml(options.label)}</button>` : "");
   return `
     <div class="flow-arrow${active}${coilClass}${topClass}" data-flow-arrow="${index}" data-station-id="${stationId}" title="${options.coilDriven ? `${count} 个线圈输出` : "点击选择插入位置"}">
       ${spans}
-      ${labelMarkup}
     </div>
   `;
 }
