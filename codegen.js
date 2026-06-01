@@ -4,7 +4,7 @@ function generateCode(stationId = state.currentStationId) {
   ensureStepSystemNumbers(work);
   const lines = [];
   lines.push(`// ${station.name} - PLC-AI IDE Demo 生成预览`);
-  lines.push("// 代码由本地规则模板生成，AI 仅补全条件、超时和报警。");
+  lines.push("// 代码由本地规则模板生成，保持流程、条件与动作的主体逻辑。");
   lines.push("");
   lines.push("CASE Step OF");
   lines.push("    0:");
@@ -23,8 +23,6 @@ function generateCode(stationId = state.currentStationId) {
       .join(" AND ");
     const hasCompiledCoils = Array.isArray(step.compiledCoils) && step.compiledCoils.length;
     const finalLogic = [conditionLogic, waitLogic].filter(Boolean).join(" AND ") || "TRUE";
-    const timers = step.actions.filter((action) => action.type !== "delay" && action.waitDone !== false);
-
     lines.push(`    ${stepNo}:`);
     if (step.comment) lines.push(`        // 注释: ${step.comment}`);
     lines.push(`        // ${step.actions.map((action) => `${action.deviceName}->${action.actionLabel}`).join(" + ") || "空步骤"}`);
@@ -40,16 +38,6 @@ function generateCode(stationId = state.currentStationId) {
     }
     step.actions.forEach((action) => lines.push(`        ${action.command};`));
 
-    timers.forEach((action, actionIndex) => {
-      const timerName = `T_${stepNo}_${safeId(action.deviceName)}_${safeId(action.actionId)}_${actionIndex + 1}`;
-      lines.push(`        ${timerName}(IN := NOT (${action.done || "TRUE"}), PT := T#${action.timeoutMs || 5000}ms);`);
-      lines.push(`        IF ${timerName}.Q THEN`);
-      lines.push(`            AlarmText := '${action.alarm || "动作超时"}';`);
-      lines.push("            Alarm := TRUE;");
-      lines.push("            Step := 999;");
-      lines.push("        END_IF;");
-    });
-
     if (!hasCompiledCoils) {
       lines.push(`        IF ${finalLogic} THEN`);
       lines.push(`            Step := ${nextStep};`);
@@ -57,12 +45,6 @@ function generateCode(stationId = state.currentStationId) {
     }
     lines.push("");
   });
-
-  lines.push("    999:");
-  lines.push("        IF ResetBtn THEN");
-  lines.push("            Alarm := FALSE;");
-  lines.push("            Step := 0;");
-  lines.push("        END_IF;");
   lines.push("END_CASE;");
   return lines.join("\n");
 }

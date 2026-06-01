@@ -517,11 +517,11 @@ function renderStationWorkspace(station, variableStation = station) {
               ${renderStationOptions(station.id)}
             </select>
             <div class="canvas-actions">
-              <button class="secondary small" data-station-action="add-condition" title="添加条件框">条件</button>
-              <button class="secondary small" data-station-action="add-step" title="添加动作步">动作</button>
-              <button class="secondary small" data-station-action="copy-selected" title="复制选中">复制</button>
-              <button class="secondary small" data-station-action="paste-selected" title="粘贴">粘贴</button>
-              <button class="secondary small danger-inline" data-station-action="delete-selected" title="删除选中">删除</button>
+              <button class="secondary small icon-button" data-station-action="add-condition" title="添加条件框" aria-label="添加条件框"><svg class="tool-svg"><use href="#i-condition"></use></svg></button>
+              <button class="secondary small icon-button" data-station-action="add-step" title="添加动作步" aria-label="添加动作步"><svg class="tool-svg"><use href="#i-action"></use></svg></button>
+              <button class="secondary small icon-button" data-station-action="copy-selected" title="复制选中" aria-label="复制选中"><svg class="tool-svg"><use href="#i-copy"></use></svg></button>
+              <button class="secondary small icon-button" data-station-action="paste-selected" title="粘贴" aria-label="粘贴"><svg class="tool-svg"><use href="#i-paste"></use></svg></button>
+              <button class="secondary small icon-button danger-inline" data-station-action="delete-selected" title="删除选中" aria-label="删除选中"><svg class="tool-svg"><use href="#i-trash"></use></svg></button>
             </div>
           </div>
         </div>
@@ -4405,7 +4405,7 @@ function getCodeCompletionSymbols(stationId) {
   getWork(stationId).steps.forEach((step, index) => {
     add(`Step${getStepSystemNo(step, index)}_Coil1`, "COIL");
   });
-  ["Step", "Alarm", "AlarmText", "ResetBtn", "StartBtn"].forEach((label) => add(label, "SYS"));
+  ["Step", "ResetBtn", "StartBtn"].forEach((label) => add(label, "SYS"));
   return [...symbols.values()].sort((a, b) => a.label.localeCompare(b.label));
 }
 
@@ -4655,9 +4655,6 @@ function updateCodeEditBadges() {
     const edited = getWork(station.id).codeEdited;
     document.querySelectorAll(`[data-station-id="${station.id}"].station-workspace`).forEach((node) => {
       node.classList.toggle("has-code-edit", edited);
-      node.querySelectorAll(".flow-step").forEach((stepNode) => {
-        stepNode.classList.toggle("has-code-edit", edited);
-      });
     });
   });
 }
