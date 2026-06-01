@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PLC-AI IDE Demo</title>
-    <link rel="stylesheet" href="styles.css?v=flow-sync-1" />
+    <link rel="stylesheet" href="styles.css?v=flow-sync-2" />
   </head>
   <body>
     <svg class="icon-sprite" aria-hidden="true">
@@ -78,8 +78,8 @@
             </div>
             <div class="code-tools">
               <input id="codeFindInput" class="code-find-input" placeholder="查找变量或文本" />
-              <button id="codeFindPrev" class="secondary small icon-button" type="button" title="上一个" aria-label="上一个"><svg class="tool-svg"><use href="#i-chevron-up"></use></svg></button>
-              <button id="codeFindNext" class="secondary small icon-button" type="button" title="下一个" aria-label="下一个"><svg class="tool-svg"><use href="#i-chevron-down"></use></svg></button>
+              <button id="codeFindPrev" class="secondary small text-icon-button compact" type="button" title="上一个" aria-label="上一个"><svg class="tool-svg"><use href="#i-chevron-up"></use></svg><span>上一个</span></button>
+              <button id="codeFindNext" class="secondary small text-icon-button compact" type="button" title="下一个" aria-label="下一个"><svg class="tool-svg"><use href="#i-chevron-down"></use></svg><span>下一个</span></button>
               <span id="codeCursorInfo" class="code-cursor-info">Ln 1, Col 1</span>
             </div>
             <div class="ai-summary" id="aiSummary">尚未编译。点击“编译”后生成梯形图逻辑与代码。</div>
@@ -118,7 +118,7 @@
     <div id="modelerModal" class="modal-backdrop" hidden></div>
     <script src="data.js?v=split-1"></script>
     <script src="utils.js?v=split-1"></script>
-    <script src="app.js?v=flow-sync-1"></script>
+    <script src="app.js?v=flow-sync-2"></script>
     <script src="codegen.js?v=split-1"></script>
     <script src="project-io.js?v=split-1"></script>
     <script src="modeler.js?v=modeler-1"></script>

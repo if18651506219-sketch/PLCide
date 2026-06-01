@@ -489,9 +489,8 @@ function renderStationWorkspace(station, variableStation = station) {
   const work = getWork(station.id);
   ensureStepSystemNumbers(work);
   const active = state.currentStationId === station.id ? " is-active-station" : "";
-  const edited = work.codeEdited ? " has-code-edit" : "";
   return `
-    <section class="station-workspace${active}${edited}" data-station-id="${station.id}">
+    <section class="station-workspace${active}" data-station-id="${station.id}">
       <aside class="library-panel station-library" data-variable-station-id="${variableStation.id}">
         <div class="panel-head station-head">
           <select class="station-inline-select" data-zone-station-select="variable" aria-label="选择变量工站">
@@ -517,11 +516,11 @@ function renderStationWorkspace(station, variableStation = station) {
               ${renderStationOptions(station.id)}
             </select>
             <div class="canvas-actions">
-              <button class="secondary small icon-button" data-station-action="add-condition" title="添加条件框" aria-label="添加条件框"><svg class="tool-svg"><use href="#i-condition"></use></svg></button>
-              <button class="secondary small icon-button" data-station-action="add-step" title="添加动作步" aria-label="添加动作步"><svg class="tool-svg"><use href="#i-action"></use></svg></button>
-              <button class="secondary small icon-button" data-station-action="copy-selected" title="复制选中" aria-label="复制选中"><svg class="tool-svg"><use href="#i-copy"></use></svg></button>
-              <button class="secondary small icon-button" data-station-action="paste-selected" title="粘贴" aria-label="粘贴"><svg class="tool-svg"><use href="#i-paste"></use></svg></button>
-              <button class="secondary small icon-button danger-inline" data-station-action="delete-selected" title="删除选中" aria-label="删除选中"><svg class="tool-svg"><use href="#i-trash"></use></svg></button>
+              <button class="secondary small text-icon-button" data-station-action="add-condition" title="添加条件框" aria-label="添加条件框"><svg class="tool-svg"><use href="#i-condition"></use></svg><span>条件</span></button>
+              <button class="secondary small text-icon-button" data-station-action="add-step" title="添加动作步" aria-label="添加动作步"><svg class="tool-svg"><use href="#i-action"></use></svg><span>动作</span></button>
+              <button class="secondary small text-icon-button compact" data-station-action="copy-selected" title="复制选中" aria-label="复制选中"><svg class="tool-svg"><use href="#i-copy"></use></svg><span>复制</span></button>
+              <button class="secondary small text-icon-button compact" data-station-action="paste-selected" title="粘贴" aria-label="粘贴"><svg class="tool-svg"><use href="#i-paste"></use></svg><span>粘贴</span></button>
+              <button class="secondary small text-icon-button compact danger-inline" data-station-action="delete-selected" title="删除选中" aria-label="删除选中"><svg class="tool-svg"><use href="#i-trash"></use></svg><span>删除</span></button>
             </div>
           </div>
         </div>
@@ -623,7 +622,11 @@ function renderCanvas(stationId) {
   if (!work.steps.length) {
     return `<div class="empty-canvas" data-empty-canvas="${stationId}"></div>`;
   }
-  const parts = [renderFlowArrow(stationId, 0, { top: true, label: "顶部插入" })];
+  const firstStep = work.steps[0];
+  const parts = [renderFlowArrow(stationId, 0, {
+    top: true,
+    label: `插入到顶部 / S${getStepSystemNo(firstStep, 0)}`
+  })];
   work.steps.forEach((step, index) => {
     parts.push(renderStep(stationId, step, index, coilLinks));
     const coilCount = getStepCoilCount(step);
@@ -635,6 +638,13 @@ function renderCanvas(stationId) {
           targetStepId: link.resolvedTargetStepId,
           title: `线圈${linkIndex + 1} 跳转到 S${link.targetStepNo}`
         }));
+      if (!labels.length && work.steps[index + 1]) {
+        labels.push({
+          text: `S${getStepSystemNo(work.steps[index + 1], index + 1)}`,
+          targetStepId: work.steps[index + 1].id,
+          title: `下一步 S${getStepSystemNo(work.steps[index + 1], index + 1)}`
+        });
+      }
       parts.push(renderFlowArrow(stationId, index + 1, {
         count: Math.max(1, coilCount),
         coilDriven: coilCount > 0,
@@ -1202,7 +1212,7 @@ function renderFlowArrow(stationId, index, options = {}) {
         : "";
       return `<button class="flow-arrow-label" type="button" style="left:${left}%"${jumpAttrs} title="${escapeHtml(label.title || label.text)}">${escapeHtml(label.text)}</button>`;
     }).join("")
-    : (options.label ? `<span class="flow-arrow-hint">${escapeHtml(options.label)}</span>` : "");
+    : (options.label ? `<button class="flow-arrow-hint" type="button"${options.targetStepId ? ` data-jump-step="${options.targetStepId}" data-jump-station="${stationId}"` : ""}>${escapeHtml(options.label)}</button>` : "");
   return `
     <div class="flow-arrow${active}${coilClass}${topClass}" data-flow-arrow="${index}" data-station-id="${stationId}" title="${options.coilDriven ? `${count} 个线圈输出` : "点击选择插入位置"}">
       ${spans}
@@ -3924,9 +3934,18 @@ function compileParallelRowExpressionBefore(ladder, row, coil) {
   if (row === LADDER_MAIN_ROW) return compileRowExpressionBefore(ladder, row, coil.col);
   const entryCol = getBranchEntryColumn(ladder, row, coil.col);
   if (entryCol === null) return compileRowExpressionBefore(ladder, row, coil.col);
-  const prefix = compileRowExpressionRange(ladder, LADDER_MAIN_ROW, 0, entryCol);
-  const branch = compileRowExpressionRange(ladder, row, entryCol, coil.col);
+  const firstBranchContactCol = getFirstSignalColumn(ladder, row, coil.col);
+  const splitCol = firstBranchContactCol === null ? entryCol : Math.max(entryCol, firstBranchContactCol);
+  const prefix = compileRowExpressionRange(ladder, LADDER_MAIN_ROW, 0, splitCol);
+  const branch = compileRowExpressionRange(ladder, row, splitCol, coil.col);
   return [prefix, branch].filter(Boolean).map((expr) => `(${expr})`).join(" AND ");
+}
+
+function getFirstSignalColumn(ladder, row, beforeCol) {
+  const cols = ladder.cells
+    .filter((cell) => cell.row === row && cell.col < beforeCol && ["NO", "NC", "RISING", "FALLING"].includes(cell.value))
+    .map((cell) => cell.col);
+  return cols.length ? Math.min(...cols) : null;
 }
 
 function getBranchEntryColumn(ladder, row, beforeCol) {
@@ -4224,13 +4243,31 @@ function syncProgramFlowFromCode(stationId, code) {
   blocks.forEach((block) => {
     if (block.stepNo <= 0 || block.stepNo === 999) return;
     const existing = work.steps.find((step, index) => getStepSystemNo(step, index) === block.stepNo);
-    if (existing) return;
     const actions = extractActionsFromCodeBlock(stationId, block.body);
     const hasCondition = /^\s*IF\s+.+\s+THEN\b/im.test(block.body);
+    if (existing) {
+      actions.forEach((action) => {
+        const command = normalizeCodeCommand(action.command);
+        const alreadyExists = existing.actions.some((item) => normalizeCodeCommand(item.command) === command);
+        if (!alreadyExists) {
+          existing.actions.push(action);
+          existing.forceActionArea = true;
+          changed = true;
+        }
+      });
+      if (hasCondition && !existing.hasConditionBox && !existing.actions.length) {
+        existing.hasConditionBox = true;
+        existing.compiledLogic = extractFirstIfExpression(block.body);
+        existing.comment = existing.comment || block.comment || "代码条件";
+        changed = true;
+      }
+      return;
+    }
     const step = createStep({
       systemNo: block.stepNo,
       comment: block.comment,
       hasConditionBox: hasCondition && !actions.length,
+      compiledLogic: hasCondition ? extractFirstIfExpression(block.body) : "",
       forceActionArea: actions.length > 0,
       actions
     });
@@ -4243,6 +4280,11 @@ function syncProgramFlowFromCode(stationId, code) {
     markDirty(stationId);
   }
   return changed;
+}
+
+function extractFirstIfExpression(body) {
+  const match = String(body || "").match(/^\s*IF\s+(.+?)\s+THEN\b/im);
+  return match ? match[1].trim() : "";
 }
 
 function parseCodeStepBlocks(code) {
@@ -4487,6 +4529,7 @@ function applyCodeSuggestion(index) {
   const work = getWork(getCodeStationId());
   work.codeOverride = next;
   work.codeEdited = true;
+  syncProgramFlowFromCode(getCodeStationId(), next);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   activeCodeToken = item.insert.includes(".") ? item.insert.split(".")[0] : item.insert;
   closeCodeSuggest();
@@ -4819,11 +4862,8 @@ function markDirty(stationId) {
 }
 
 function updateCodeEditBadges() {
-  projectData.stations.forEach((station) => {
-    const edited = getWork(station.id).codeEdited;
-    document.querySelectorAll(`[data-station-id="${station.id}"].station-workspace`).forEach((node) => {
-      node.classList.toggle("has-code-edit", edited);
-    });
+  document.querySelectorAll(".station-workspace.has-code-edit, .flow-step.has-code-edit").forEach((node) => {
+    node.classList.remove("has-code-edit");
   });
 }
 

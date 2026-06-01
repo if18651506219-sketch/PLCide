@@ -505,6 +505,7 @@ body.tool-selected .node-condition:hover {
   height: 44px;
   margin: 0 auto;
   position: relative;
+  border-radius: 8px;
 }
 
 .flow-arrow.terminal-arrow {
@@ -533,9 +534,11 @@ body.tool-selected .node-condition:hover {
 }
 
 .flow-arrow.is-top-insert {
-  height: 34px;
-  margin-top: 2px;
+  height: 42px;
+  margin-top: 4px;
   opacity: 0.82;
+  background: rgba(238, 247, 255, 0.58);
+  border: 1px dashed rgba(93, 146, 190, 0.55);
 }
 
 .flow-arrow span {
@@ -582,11 +585,13 @@ body.tool-selected .node-condition:hover {
   font-weight: 800;
   line-height: 18px;
   box-shadow: 0 2px 5px rgba(32, 58, 78, 0.08);
+  z-index: 2;
 }
 
 .flow-arrow-hint {
   left: 50%;
-  pointer-events: none;
+  cursor: pointer;
+  transform: translateX(-50%);
 }
 
 .flow-arrow-label {
@@ -594,6 +599,12 @@ body.tool-selected .node-condition:hover {
 }
 
 .flow-arrow-label:hover {
+  border-color: #7eb9df;
+  color: #0d6ea8;
+  background: #eef8ff;
+}
+
+.flow-arrow-hint:hover {
   border-color: #7eb9df;
   color: #0d6ea8;
   background: #eef8ff;
@@ -1060,6 +1071,31 @@ body.tool-selected .node-condition:hover {
   place-items: center;
   border-radius: 5px;
   background: #eef2f6;
+}
+
+.text-icon-button {
+  height: 28px;
+  min-width: 58px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 9px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.text-icon-button.compact {
+  min-width: 54px;
+  padding: 0 8px;
+}
+
+.text-icon-button .tool-svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
 }
 
 .form-grid {
@@ -3230,39 +3266,6 @@ body.program-hidden .station-workspace {
   font-size: 11px;
 }
 
-.flow-step.has-code-edit .flow-node::after {
-  content: "改";
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  width: 18px;
-  height: 18px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  border: 1px solid #d39422;
-  background: #fff2c7;
-  color: #7a4b00;
-  font-size: 11px;
-  font-weight: 800;
-  box-shadow: 0 2px 6px rgba(35, 45, 58, 0.14);
-}
-
-.station-workspace.has-code-edit .station-head::after {
-  content: "代码已改";
-  display: inline-block;
-  margin-top: 4px;
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: #fff2c7;
-  color: #76500b;
-  font-size: 10px;
-}
-
-.flow-step.has-code-edit .flow-node::after {
-  display: grid;
-}
-
 .library-item {
   position: relative;
 }
@@ -4780,10 +4783,10 @@ body.program-hidden .station-workspace {
 
 .station-program .canvas-head .canvas-actions .small {
   flex: 0 0 auto;
-  width: 28px;
-  min-width: 28px;
+  width: auto;
+  min-width: 54px;
   height: 28px;
-  padding: 0;
+  padding: 0 8px;
 }
 
 .canvas-head {
@@ -4817,10 +4820,12 @@ body.program-hidden .station-workspace {
   height: 24px;
 }
 
-.code-tools .icon-button {
-  width: 28px;
-  min-width: 28px;
+.code-tools .text-icon-button {
+  width: auto;
+  min-width: 66px;
   height: 24px;
+  padding: 0 7px;
+  font-size: 11px;
 }
 
 .ai-summary {
