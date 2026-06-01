@@ -620,16 +620,26 @@ function isEditingLibraryField(stationId, kind, id, field) {
 function renderCanvas(stationId) {
   const work = getWork(stationId);
   const coilLinks = getCoilLinks(work);
-  if (!work.steps.length && !work.arrows.includes(0)) {
+  if (!work.steps.length) {
     return `<div class="empty-canvas" data-empty-canvas="${stationId}"></div>`;
   }
-  const parts = [];
-  if (work.arrows.includes(0)) parts.push(renderFlowArrow(stationId, 0));
+  const parts = [renderFlowArrow(stationId, 0, { top: true, label: "顶部插入" })];
   work.steps.forEach((step, index) => {
     parts.push(renderStep(stationId, step, index, coilLinks));
     const coilCount = getStepCoilCount(step);
     if (index < work.steps.length - 1 || work.arrows.includes(index + 1) || coilCount > 0) {
-      parts.push(renderFlowArrow(stationId, index + 1, { count: Math.max(1, coilCount), coilDriven: coilCount > 0 }));
+      const labels = coilLinks
+        .filter((link) => link.sourceStepId === step.id)
+        .map((link, linkIndex) => ({
+          text: `S${link.targetStepNo}`,
+          targetStepId: link.resolvedTargetStepId,
+          title: `线圈${linkIndex + 1} 跳转到 S${link.targetStepNo}`
+        }));
+      parts.push(renderFlowArrow(stationId, index + 1, {
+        count: Math.max(1, coilCount),
+        coilDriven: coilCount > 0,
+        labels
+      }));
     }
   });
   return parts.join("");
@@ -666,7 +676,7 @@ function renderStepJumpLinks(stationId, stepId, links) {
   return `
     <div class="jump-links">
       ${outgoing.map((link) => `
-        <button type="button" data-jump-step="${link.targetStepId}" data-jump-station="${stationId}">
+        <button type="button" data-jump-step="${link.targetStepId}" data-jump-station="${stationId}" title="左键或右键跳转到目标步骤">
           线圈${link.coilIndex + 1} -> S${link.targetStepNo}
         </button>
       `).join("")}
@@ -1178,13 +1188,25 @@ function renderFlowArrow(stationId, index, options = {}) {
   const active = activeInsert?.stationId === stationId && activeInsert?.index === index ? " is-active-insert" : "";
   const count = Math.max(1, Number(options.count) || 1);
   const coilClass = options.coilDriven ? " is-coil-driven" : "";
+  const topClass = options.top ? " is-top-insert" : "";
   const spans = Array.from({ length: count }, (_, arrowIndex) => {
     const left = count === 1 ? 50 : 50 + (arrowIndex - (count - 1) / 2) * 16;
     return `<span style="left:${left}%"></span>`;
   }).join("");
+  const labels = Array.isArray(options.labels) ? options.labels : [];
+  const labelMarkup = labels.length
+    ? labels.map((label, arrowIndex) => {
+      const left = count === 1 ? 50 : 50 + (arrowIndex - (count - 1) / 2) * 16;
+      const jumpAttrs = label.targetStepId
+        ? ` data-jump-step="${label.targetStepId}" data-jump-station="${stationId}"`
+        : "";
+      return `<button class="flow-arrow-label" type="button" style="left:${left}%"${jumpAttrs} title="${escapeHtml(label.title || label.text)}">${escapeHtml(label.text)}</button>`;
+    }).join("")
+    : (options.label ? `<span class="flow-arrow-hint">${escapeHtml(options.label)}</span>` : "");
   return `
-    <div class="flow-arrow${active}${coilClass}" data-flow-arrow="${index}" data-station-id="${stationId}" title="${options.coilDriven ? `${count} 个线圈输出` : ""}">
+    <div class="flow-arrow${active}${coilClass}${topClass}" data-flow-arrow="${index}" data-station-id="${stationId}" title="${options.coilDriven ? `${count} 个线圈输出` : "点击选择插入位置"}">
       ${spans}
+      ${labelMarkup}
     </div>
   `;
 }
@@ -1677,6 +1699,13 @@ function insertStepAtActivePosition(stationId, step) {
 }
 
 function handleStationContextMenu(event) {
+  const jumpStep = event.target.closest("[data-jump-step]");
+  if (jumpStep) {
+    event.preventDefault();
+    jumpToStep(jumpStep.dataset.jumpStation || jumpStep.closest(".station-workspace")?.dataset.stationId, jumpStep.dataset.jumpStep);
+    return;
+  }
+
   const cell = event.target.closest("[data-ladder-cell]");
   if (!cell) return;
   event.preventDefault();
@@ -3869,17 +3898,51 @@ function compileCoilExpression(ladder, coil) {
   const rows = getRowsConnectedToCoil(ladder, coil);
   const expressions = [...rows]
     .sort((a, b) => a - b)
-    .map((row) => compileRowExpressionBefore(ladder, row, coil.col))
+    .map((row) => compileParallelRowExpressionBefore(ladder, row, coil))
     .filter(Boolean)
     .map((expr) => `(${expr})`);
   return expressions.join(" OR ");
 }
 
 function compileRowExpressionBefore(ladder, row, beforeCol) {
+  return compileRowExpressionRange(ladder, row, 0, beforeCol);
+}
+
+function compileRowExpressionRange(ladder, row, startCol, beforeCol) {
   const contacts = ladder.cells
-    .filter((cell) => cell.row === row && cell.col < beforeCol && ["NO", "NC", "RISING", "FALLING"].includes(cell.value))
+    .filter((cell) =>
+      cell.row === row &&
+      cell.col >= startCol &&
+      cell.col < beforeCol &&
+      ["NO", "NC", "RISING", "FALLING"].includes(cell.value)
+    )
     .sort((a, b) => a.col - b.col);
   return toLogicExpression(contacts);
+}
+
+function compileParallelRowExpressionBefore(ladder, row, coil) {
+  if (row === LADDER_MAIN_ROW) return compileRowExpressionBefore(ladder, row, coil.col);
+  const entryCol = getBranchEntryColumn(ladder, row, coil.col);
+  if (entryCol === null) return compileRowExpressionBefore(ladder, row, coil.col);
+  const prefix = compileRowExpressionRange(ladder, LADDER_MAIN_ROW, 0, entryCol);
+  const branch = compileRowExpressionRange(ladder, row, entryCol, coil.col);
+  return [prefix, branch].filter(Boolean).map((expr) => `(${expr})`).join(" AND ");
+}
+
+function getBranchEntryColumn(ladder, row, beforeCol) {
+  for (let col = 0; col <= beforeCol; col += 1) {
+    if (hasVerticalPathBetweenRows(ladder, LADDER_MAIN_ROW, row, col)) return col;
+  }
+  return null;
+}
+
+function hasVerticalPathBetweenRows(ladder, fromRow, toRow, col) {
+  const start = Math.min(fromRow, toRow);
+  const end = Math.max(fromRow, toRow);
+  for (let row = start; row < end; row += 1) {
+    if (!hasVerticalConnectionBetweenRows(ladder, row, col)) return false;
+  }
+  return true;
 }
 
 function getRowsConnectedToCoil(ladder, coil) {
@@ -3997,10 +4060,12 @@ function getCoilLinks(work) {
     getLadderCoils(ladder).forEach((coil, coilIndex) => {
       const targetStepId = coil.targetStepId || "";
       const targetIndex = targetStepId ? work.steps.findIndex((candidate) => candidate.id === targetStepId) : -1;
+      const nextStep = work.steps[stepIndex + 1];
       links.push({
         sourceStepId: step.id,
         sourceStepNo: getStepSystemNo(step, stepIndex),
         targetStepId,
+        resolvedTargetStepId: targetStepId || nextStep?.id || "",
         targetStepNo: targetIndex >= 0 ? getStepSystemNo(work.steps[targetIndex], targetIndex) : getNextStepSystemNo(work, stepIndex),
         coilIndex,
         row: coil.row,
@@ -4130,15 +4195,118 @@ function indentCodeSelection(outdent = false) {
 }
 
 function commitCodeEditorValue(code) {
-  const work = getWork(getCodeStationId());
+  const stationId = getCodeStationId();
+  const work = getWork(stationId);
   work.codeOverride = code;
   work.codeEdited = true;
+  const synced = syncProgramFlowFromCode(stationId, code);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   updateActiveCodeTokenFromEditor();
   renderCodeHighlight(code);
   updateCodeEditorChrome();
   updateCodeEditBadges();
   renderAiSummary();
+  if (synced) {
+    const cursor = {
+      start: els.codePreview.selectionStart,
+      end: els.codePreview.selectionEnd
+    };
+    renderAll();
+    els.codePreview.focus();
+    els.codePreview.setSelectionRange(cursor.start, cursor.end);
+  }
+}
+
+function syncProgramFlowFromCode(stationId, code) {
+  const work = getWork(stationId);
+  const blocks = parseCodeStepBlocks(code);
+  let changed = false;
+  blocks.forEach((block) => {
+    if (block.stepNo <= 0 || block.stepNo === 999) return;
+    const existing = work.steps.find((step, index) => getStepSystemNo(step, index) === block.stepNo);
+    if (existing) return;
+    const actions = extractActionsFromCodeBlock(stationId, block.body);
+    const hasCondition = /^\s*IF\s+.+\s+THEN\b/im.test(block.body);
+    const step = createStep({
+      systemNo: block.stepNo,
+      comment: block.comment,
+      hasConditionBox: hasCondition && !actions.length,
+      forceActionArea: actions.length > 0,
+      actions
+    });
+    const insertAt = work.steps.findIndex((candidate, index) => getStepSystemNo(candidate, index) > block.stepNo);
+    work.steps.splice(insertAt >= 0 ? insertAt : work.steps.length, 0, step);
+    changed = true;
+  });
+  if (changed) {
+    ensureStepSystemNumbers(work);
+    markDirty(stationId);
+  }
+  return changed;
+}
+
+function parseCodeStepBlocks(code) {
+  const lines = String(code || "").split(/\r?\n/);
+  const blocks = [];
+  let current = null;
+  lines.forEach((line) => {
+    const match = line.match(/^\s*(\d+)\s*:\s*$/);
+    if (match) {
+      if (current) blocks.push(current);
+      current = { stepNo: Number(match[1]), body: "", comment: "" };
+      return;
+    }
+    if (!current) return;
+    current.body += `${line}\n`;
+    if (!current.comment) {
+      const comment = line.match(/^\s*\/\/\s*(.+)$/);
+      if (comment) current.comment = comment[1].trim();
+    }
+  });
+  if (current) blocks.push(current);
+  return blocks;
+}
+
+function extractActionsFromCodeBlock(stationId, body) {
+  return String(body || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("//") && !/^(IF|END_IF|CASE|END_CASE)\b/i.test(line))
+    .filter((line) => !/^Step\s*:=/i.test(line))
+    .filter((line) => /:=\s*TRUE\s*;?$/i.test(line))
+    .map((line) => findActionByCommand(stationId, line) || createCodeAction(line))
+    .filter(Boolean);
+}
+
+function findActionByCommand(stationId, command) {
+  const normalized = normalizeCodeCommand(command);
+  for (const device of getLibraryItems(stationId, "actuator")) {
+    for (const option of device.actions || []) {
+      if (normalizeCodeCommand(option.command) === normalized) return createAction(device, option);
+    }
+  }
+  return null;
+}
+
+function createCodeAction(command) {
+  const left = commandExpression(command);
+  const deviceName = left.split(".")[0] || "代码动作";
+  return {
+    id: uid("act"),
+    deviceId: safeId(deviceName) || "code",
+    deviceName,
+    type: "code",
+    options: [],
+    actionId: "code",
+    actionLabel: left,
+    command: normalizeCodeCommand(command),
+    done: "TRUE",
+    waitDone: false
+  };
+}
+
+function normalizeCodeCommand(command) {
+  return String(command || "").trim().replace(/;$/, "");
 }
 
 function handleCodeEditorKeydown(event) {
