@@ -4030,6 +4030,9 @@ function factorPathLogic(paths) {
     ]);
   }
 
+  const repeatedRemainder = factorRepeatedRemainders(normalized);
+  if (repeatedRemainder) return repeatedRemainder;
+
   const cartesian = factorCartesianPathTree(normalized);
   if (cartesian) return cartesian;
 
@@ -4038,6 +4041,33 @@ function factorPathLogic(paths) {
     logicTerm(group.term),
     factorPathLogic(group.rest)
   ])));
+}
+
+function factorRepeatedRemainders(paths) {
+  const groups = groupPathsByFirstTerm(paths);
+  const buckets = [];
+  groups.forEach((group) => {
+    const rest = dedupePaths(group.rest);
+    const signature = pathSetSignature(rest);
+    let bucket = buckets.find((item) => item.signature === signature);
+    if (!bucket) {
+      bucket = { signature, rest, terms: [] };
+      buckets.push(bucket);
+    }
+    bucket.terms.push(group.term);
+  });
+  if (!buckets.some((bucket) => bucket.terms.length > 1)) return null;
+  return logicOr(buckets.map((bucket) => {
+    const head = logicOr(bucket.terms.map(logicTerm));
+    if (!bucket.rest.length || bucket.rest.every((path) => !path.length)) return head;
+    return logicAnd([head, factorPathLogic(bucket.rest)]);
+  }));
+}
+
+function pathSetSignature(paths) {
+  return dedupePaths(paths)
+    .map((path) => path.join("\u0001"))
+    .join("\u0002");
 }
 
 function dedupePaths(paths) {
