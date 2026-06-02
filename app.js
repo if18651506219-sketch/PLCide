@@ -24,6 +24,9 @@ let lastHighlightedCode = "";
 let lastHighlightedToken = "";
 let activeTargetEditor = null;
 let libraryEditPointerDown = false;
+let stateSaveTimer = null;
+let pendingCodeSync = null;
+let codeSyncTimer = null;
 
 const ST_KEYWORDS = new Set([
   "CASE", "OF", "END_CASE", "IF", "THEN", "END_IF", "TRUE", "FALSE", "NOT", "AND", "OR",
@@ -265,6 +268,10 @@ function bindEvents() {
       saveAndRender();
       event.preventDefault();
     }
+  });
+  window.addEventListener("beforeunload", () => {
+    flushCodeFlowSync();
+    saveStateNow();
   });
 }
 
@@ -1896,7 +1903,7 @@ function updateStepComment(input) {
   const step = getStep(input.dataset.stationId, input.dataset.stepComment);
   if (!step) return;
   step.comment = input.value;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  scheduleStateSave();
 }
 
 function updateStepSystemNo(input, options = {}) {
@@ -1907,7 +1914,7 @@ function updateStepSystemNo(input, options = {}) {
   const nextNo = Math.max(1, Number(input.value) || 1);
   step.systemNo = nextNo;
   markDirty(stationId);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  scheduleStateSave();
   if (!options.render) return;
   const selectionStart = input.selectionStart;
   const selectionEnd = input.selectionEnd;
@@ -1971,7 +1978,7 @@ function handlePaneResizePointerDown(event) {
   const onUp = () => {
     window.removeEventListener("pointermove", onMove);
     window.removeEventListener("pointerup", onUp);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    saveStateNow();
   };
   window.addEventListener("pointermove", onMove);
   window.addEventListener("pointerup", onUp);
@@ -2242,7 +2249,7 @@ function saveLibraryInput(input, options = {}) {
     }
   }
   editingLibraryItem = options.keepEditing ? { stationId, kind, id, field: savedField } : null;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  scheduleStateSave();
   renderCodePreview();
   renderAiSummary();
   updateCodeEditBadges();
@@ -4544,22 +4551,37 @@ function commitCodeEditorValue(code) {
   const editedStepNos = getEditedCodeStepNos(previousCode, code);
   work.codeOverride = code;
   work.codeEdited = true;
-  const synced = syncProgramFlowFromCode(stationId, code, editedStepNos);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  scheduleStateSave();
   updateActiveCodeTokenFromEditor();
   renderCodeHighlight(code);
   updateCodeEditorChrome();
   updateCodeEditBadges();
   renderAiSummary();
-  if (synced) {
-    const cursor = {
-      start: els.codePreview.selectionStart,
-      end: els.codePreview.selectionEnd
-    };
-    renderAll();
-    els.codePreview.focus();
-    els.codePreview.setSelectionRange(cursor.start, cursor.end);
-  }
+  scheduleCodeFlowSync(stationId, code, editedStepNos);
+}
+
+function scheduleCodeFlowSync(stationId, code, editedStepNos) {
+  pendingCodeSync = { stationId, code, editedStepNos };
+  window.clearTimeout(codeSyncTimer);
+  codeSyncTimer = window.setTimeout(flushCodeFlowSync, 180);
+}
+
+function flushCodeFlowSync() {
+  if (!pendingCodeSync) return;
+  const { stationId, code, editedStepNos } = pendingCodeSync;
+  pendingCodeSync = null;
+  const cursor = getCodeStationId() === stationId && els.codePreview
+    ? { start: els.codePreview.selectionStart, end: els.codePreview.selectionEnd }
+    : null;
+  const synced = syncProgramFlowFromCode(stationId, code, editedStepNos);
+  saveStateNow();
+  updateCodeEditBadges();
+  renderAiSummary();
+  if (!synced) return;
+  renderAll();
+  if (!cursor || getCodeStationId() !== stationId) return;
+  els.codePreview.focus();
+  els.codePreview.setSelectionRange(cursor.start, cursor.end);
 }
 
 function syncProgramFlowFromCode(stationId, code, editedStepNos = []) {
@@ -4903,10 +4925,11 @@ function applyCodeSuggestion(index) {
   els.codePreview.value = next;
   els.codePreview.setSelectionRange(caret, caret);
   const work = getWork(getCodeStationId());
+  const previousCode = work.codeEdited ? work.codeOverride : generateCode(getCodeStationId());
   work.codeOverride = next;
   work.codeEdited = true;
-  syncProgramFlowFromCode(getCodeStationId(), next);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  scheduleCodeFlowSync(getCodeStationId(), next, getEditedCodeStepNos(previousCode, next));
+  scheduleStateSave();
   activeCodeToken = item.insert.includes(".") ? item.insert.split(".")[0] : item.insert;
   closeCodeSuggest();
   renderCodeHighlight(next);
@@ -5061,8 +5084,21 @@ function highlightStCode(code) {
   return output || " ";
 }
 
-function saveAndRender() {
+function saveStateNow() {
+  if (stateSaveTimer) {
+    window.clearTimeout(stateSaveTimer);
+    stateSaveTimer = null;
+  }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function scheduleStateSave() {
+  if (stateSaveTimer) return;
+  stateSaveTimer = window.setTimeout(saveStateNow, 120);
+}
+
+function saveAndRender() {
+  saveStateNow();
   renderAll();
 }
 
