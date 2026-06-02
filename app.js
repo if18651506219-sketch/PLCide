@@ -346,6 +346,7 @@ function createStationWork(overrides = {}) {
     aiSummary: [],
     codeOverride: "",
     codeEdited: false,
+    codeEditedSteps: [],
     ...overrides
   };
 }
@@ -696,9 +697,11 @@ function renderStep(stationId, step, index, coilLinks = null) {
   const links = coilLinks || getCoilLinks(getWork(stationId));
   const jumpSource = links.some((link) => link.sourceStepId === step.id) ? " is-jump-source" : "";
   const jumpTarget = links.some((link) => link.targetStepId === step.id) ? " is-jump-target" : "";
+  const codeEdit = isCodeEditedStep(stationId, step.id) ? " has-code-edit" : "";
   return `
-    <article class="flow-step${active}${conditionOnly}${hasConditionBox}${jumpSource}${jumpTarget}" data-station-id="${stationId}" data-step-id="${step.id}" data-step-index="${index}">
+    <article class="flow-step${active}${conditionOnly}${hasConditionBox}${jumpSource}${jumpTarget}${codeEdit}" data-station-id="${stationId}" data-step-id="${step.id}" data-step-index="${index}">
       <div class="flow-node">
+        <span class="code-edit-dot" title="代码区已修改此步骤" aria-label="代码区已修改此步骤"></span>
         <div class="step-meta">
           <label>S<input class="step-system-no" data-step-system-no="${step.id}" data-station-id="${stationId}" type="number" min="1" step="1" value="${getStepSystemNo(step, index)}" /></label>
           <input class="step-comment" data-step-comment="${step.id}" data-station-id="${stationId}" value="${escapeHtml(step.comment || "")}" placeholder="节点注释" />
@@ -2135,6 +2138,7 @@ function loadVideoLogicDemo(stationId) {
   work.aiSummary = [];
   work.codeEdited = false;
   work.codeOverride = "";
+  work.codeEditedSteps = [];
 
   setActiveStation(stationId);
   activeStep = { stationId, stepId: step.id };
@@ -3851,6 +3855,7 @@ function compileStationLogic(stationId = state.currentStationId) {
     issues.push(...result.issues);
   });
   work.codeEdited = false;
+  work.codeEditedSteps = [];
   work.aiCompleted = true;
   work.aiSummary = issues.length
     ? issues
@@ -4074,6 +4079,7 @@ function tidyStationLogic(stationId = state.currentStationId) {
   });
   const workRef = getWork(stationId);
   workRef.codeEdited = false;
+  workRef.codeEditedSteps = [];
   workRef.aiCompleted = true;
   workRef.aiSummary = [`整理完成：已压缩 ${changed} 个条件框，最小尺寸保留 3 × 1。`];
 }
@@ -4271,9 +4277,11 @@ function indentCodeSelection(outdent = false) {
 function commitCodeEditorValue(code) {
   const stationId = getCodeStationId();
   const work = getWork(stationId);
+  const previousCode = work.codeEdited ? work.codeOverride : generateCode(stationId);
+  const editedStepNos = getEditedCodeStepNos(previousCode, code);
   work.codeOverride = code;
   work.codeEdited = true;
-  const synced = syncProgramFlowFromCode(stationId, code);
+  const synced = syncProgramFlowFromCode(stationId, code, editedStepNos);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   updateActiveCodeTokenFromEditor();
   renderCodeHighlight(code);
@@ -4291,11 +4299,13 @@ function commitCodeEditorValue(code) {
   }
 }
 
-function syncProgramFlowFromCode(stationId, code) {
+function syncProgramFlowFromCode(stationId, code, editedStepNos = []) {
   const work = getWork(stationId);
   const blocks = parseCodeStepBlocks(code).filter((block) => block.stepNo > 0 && block.stepNo !== 999);
   const codeStepNos = new Set(blocks.map((block) => block.stepNo));
   const usedStepIds = new Set();
+  const editedNos = new Set(editedStepNos.map(Number).filter(Number.isFinite));
+  const editedStepIds = new Set((work.codeEditedSteps || []).filter((stepId) => work.steps.some((step) => step.id === stepId)));
   let changed = false;
   blocks.forEach((block, blockIndex) => {
     const existing = findStepForCodeBlock(work, block, blockIndex, codeStepNos, usedStepIds);
@@ -4303,6 +4313,7 @@ function syncProgramFlowFromCode(stationId, code) {
     const hasCondition = /^\s*IF\s+.+\s+THEN\b/im.test(block.body);
     if (existing) {
       usedStepIds.add(existing.id);
+      if (editedNos.has(block.stepNo)) editedStepIds.add(existing.id);
       if (Number(existing.systemNo) !== block.stepNo) {
         existing.systemNo = block.stepNo;
         changed = true;
@@ -4332,10 +4343,12 @@ function syncProgramFlowFromCode(stationId, code) {
       forceActionArea: actions.length > 0,
       actions
     });
+    if (editedNos.has(block.stepNo)) editedStepIds.add(step.id);
     const insertAt = work.steps.findIndex((candidate, index) => getStepSystemNo(candidate, index) > block.stepNo);
     work.steps.splice(insertAt >= 0 ? insertAt : work.steps.length, 0, step);
     changed = true;
   });
+  work.codeEditedSteps = Array.from(editedStepIds).filter((stepId) => work.steps.some((step) => step.id === stepId));
   if (changed) {
     ensureStepSystemNumbers(work);
     markDirty(stationId);
@@ -4382,6 +4395,31 @@ function parseCodeStepBlocks(code) {
   });
   if (current) blocks.push(current);
   return blocks;
+}
+
+function getEditedCodeStepNos(previousCode, nextCode) {
+  const before = new Map();
+  parseCodeStepBlocks(previousCode)
+    .filter((block) => block.stepNo > 0 && block.stepNo !== 999)
+    .forEach((block) => {
+      before.set(block.stepNo, normalizeCodeBlockBody(block.body));
+    });
+  const edited = [];
+  parseCodeStepBlocks(nextCode)
+    .filter((block) => block.stepNo > 0 && block.stepNo !== 999)
+    .forEach((block) => {
+      if (before.get(block.stepNo) !== normalizeCodeBlockBody(block.body)) {
+        edited.push(block.stepNo);
+      }
+    });
+  return edited;
+}
+
+function normalizeCodeBlockBody(body) {
+  return String(body || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/[ \t]+$/gm, "")
+    .trim();
 }
 
 function extractActionsFromCodeBlock(stationId, body) {
@@ -4883,6 +4921,7 @@ function hydrateState() {
     if (!Array.isArray(work.localVariables)) work.localVariables = [];
     if (!Array.isArray(work.steps)) work.steps = [];
     if (!Array.isArray(work.arrows)) work.arrows = [];
+    if (!Array.isArray(work.codeEditedSteps)) work.codeEditedSteps = [];
     splitCombinedConditionActionSteps(work);
     work.steps.forEach((step) => {
       if (!Number.isFinite(Number(step.systemNo)) || Number(step.systemNo) <= 0) step.systemNo = null;
@@ -4902,6 +4941,7 @@ function hydrateState() {
     });
     work.libraryOpen = { ...createStationWork().libraryOpen, ...(work.libraryOpen || {}) };
     ensureStepSystemNumbers(work);
+    work.codeEditedSteps = work.codeEditedSteps.filter((stepId) => work.steps.some((step) => step.id === stepId));
   });
 }
 
@@ -4937,9 +4977,14 @@ function markDirty(stationId) {
 }
 
 function updateCodeEditBadges() {
-  document.querySelectorAll(".station-workspace.has-code-edit, .flow-step.has-code-edit").forEach((node) => {
-    node.classList.remove("has-code-edit");
+  document.querySelectorAll(".flow-step[data-station-id][data-step-id]").forEach((node) => {
+    const isEdited = isCodeEditedStep(node.dataset.stationId, node.dataset.stepId);
+    node.classList.toggle("has-code-edit", isEdited);
   });
+}
+
+function isCodeEditedStep(stationId, stepId) {
+  return Boolean(getWork(stationId).codeEditedSteps?.includes(stepId));
 }
 
 function syncCanvasNodeWidth() {

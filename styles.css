@@ -4307,6 +4307,26 @@ body.program-hidden .station-workspace {
   margin: 0 0 4px;
 }
 
+.code-edit-dot {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  z-index: 4;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #f4bd2f;
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.92),
+    0 4px 10px rgba(164, 103, 7, 0.32);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.flow-step.has-code-edit .code-edit-dot {
+  opacity: 1;
+}
+
 .step-meta label {
   height: 24px;
   display: grid;
