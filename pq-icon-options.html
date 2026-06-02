@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pQ Option E Variants</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at 16% 10%, rgba(255, 255, 255, 0.06), transparent 26%),
+          #080d12;
+        color: #fff;
+      }
+
+      main {
+        width: min(1120px, calc(100vw - 48px));
+        margin: 0 auto;
+        padding: 38px 0 56px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 24px;
+        letter-spacing: 0;
+      }
+
+      p {
+        margin: 8px 0 28px;
+        color: rgba(255, 255, 255, 0.58);
+        font-size: 14px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .card {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 18px;
+        background: #101820;
+        padding: 20px;
+      }
+
+      .preview {
+        height: 214px;
+        display: grid;
+        place-items: center;
+        border-radius: 14px;
+        background:
+          radial-gradient(circle at 50% 38%, rgba(255, 255, 255, 0.075), transparent 42%),
+          #070d12;
+      }
+
+      .icon {
+        width: 124px;
+        height: 124px;
+      }
+
+      .glyph {
+        fill: none;
+        stroke: #fff;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .soft {
+        opacity: 0.34;
+      }
+
+      .meta {
+        margin-top: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      h2 {
+        margin: 0;
+        font-size: 15px;
+        letter-spacing: 0;
+      }
+
+      span {
+        color: rgba(255, 255, 255, 0.48);
+        font-size: 12px;
+      }
+
+      @media (max-width: 860px) {
+        .grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 560px) {
+        main {
+          width: calc(100vw - 24px);
+          padding-top: 24px;
+        }
+
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>pQ / E 系列延展</h1>
+      <p>沿用 E 的快速输出风格，做得更俏皮、灵动一点；主体保持白色。</p>
+
+      <section class="grid">
+        <article class="card">
+          <div class="preview">
+            <svg class="icon" viewBox="0 0 120 120" role="img" aria-label="E1 Bounce">
+              <rect x="10" y="10" width="100" height="100" rx="30" fill="#0b1218" />
+              <path class="glyph" d="M39 86V46c0-12 9-21 22-21s22 9 22 21-9 21-22 21H49" stroke-width="8.4" />
+              <path class="glyph" d="M62 67c5 12 17 21 31 21" stroke-width="8.4" />
+              <path class="glyph" d="M89 79 97 88 87 96" stroke-width="8.4" />
+              <circle cx="39" cy="86" r="3.2" fill="#fff" />
+            </svg>
+          </div>
+          <div class="meta">
+            <h2>E1 / Bounce</h2>
+            <span>最接近原 E</span>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="preview">
+            <svg class="icon" viewBox="0 0 120 120" role="img" aria-label="E2 Wink">
+              <rect x="10" y="10" width="100" height="100" rx="30" fill="#0b1218" />
+              <path class="glyph" d="M38 86V47c0-13 10-22 23-22s22 9 22 21-9 21-22 21H50" stroke-width="8.2" />
+              <path class="glyph" d="M63 67c6 12 18 20 30 20" stroke-width="8.2" />
+              <path class="glyph" d="M88 80c4 1 7 3 10 7-4 2-8 5-11 9" stroke-width="8.2" />
+              <path class="glyph" d="M87 27v7M83.5 30.5h7" stroke-width="3.2" />
+            </svg>
+          </div>
+          <div class="meta">
+            <h2>E2 / Wink</h2>
+            <span>轻微 AI 星点</span>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="preview">
+            <svg class="icon" viewBox="0 0 120 120" role="img" aria-label="E3 Glide">
+              <rect x="10" y="10" width="100" height="100" rx="32" fill="#0b1218" />
+              <path class="glyph" d="M38 88V48c0-12 9-21 22-21s22 9 22 21-9 21-22 21H50" stroke-width="8.1" />
+              <path class="glyph" d="M60 69c11 2 17 10 27 15 4 2 8 2 13 0" stroke-width="8.1" />
+              <path class="glyph" d="M93 75 101 84 91 93" stroke-width="8.1" />
+              <path class="glyph soft" d="M30 35c5-5 10-8 17-9" stroke-width="4.5" />
+            </svg>
+          </div>
+          <div class="meta">
+            <h2>E3 / Glide</h2>
+            <span>尾巴更飘</span>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="preview">
+            <svg class="icon" viewBox="0 0 120 120" role="img" aria-label="E4 Pop">
+              <rect x="10" y="10" width="100" height="100" rx="28" fill="#0b1218" />
+              <path class="glyph" d="M40 86V46c0-12 9-21 22-21s22 9 22 21-9 21-22 21H50" stroke-width="8.6" />
+              <path class="glyph" d="M63 67c4 10 12 17 25 20" stroke-width="8.6" />
+              <path class="glyph" d="M88 78 99 88 88 98" stroke-width="8.6" />
+              <circle cx="98" cy="31" r="3.4" fill="#fff" />
+              <circle cx="29" cy="34" r="2.5" fill="#fff" opacity=".5" />
+            </svg>
+          </div>
+          <div class="meta">
+            <h2>E4 / Pop</h2>
+            <span>俏皮气泡感</span>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="preview">
+            <svg class="icon" viewBox="0 0 120 120" role="img" aria-label="E5 Sprint">
+              <rect x="10" y="10" width="100" height="100" rx="30" fill="#0b1218" />
+              <path class="glyph" d="M38 86V45c0-12 9-21 22-21s22 9 22 21-9 21-22 21H49" stroke-width="8.4" />
+              <path class="glyph" d="M62 66c8 9 18 14 33 16" stroke-width="8.4" />
+              <path class="glyph" d="M91 73 101 82 90 92" stroke-width="8.4" />
+              <path class="glyph soft" d="M24 58h12M26 70h9" stroke-width="4.5" />
+            </svg>
+          </div>
+          <div class="meta">
+            <h2>E5 / Sprint</h2>
+            <span>速度感更强</span>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="preview">
+            <svg class="icon" viewBox="0 0 120 120" role="img" aria-label="E6 Curl">
+              <rect x="10" y="10" width="100" height="100" rx="31" fill="#0b1218" />
+              <path class="glyph" d="M39 86V46c0-12 9-21 22-21s22 9 22 21-9 21-22 21H50" stroke-width="8.2" />
+              <path class="glyph" d="M62 67c3 13 14 21 27 21 8 0 13-4 13-9 0-4-3-7-8-8" stroke-width="8.2" />
+              <path class="glyph" d="M90 66 80 71l8 9" stroke-width="8.2" />
+              <path class="glyph" d="M88 27v8M84 31h8" stroke-width="3.2" />
+            </svg>
+          </div>
+          <div class="meta">
+            <h2>E6 / Curl</h2>
+            <span>最灵动</span>
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

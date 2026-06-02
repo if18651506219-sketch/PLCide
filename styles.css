@@ -81,10 +81,10 @@ button {
   display: grid;
   place-items: center;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.055);
   box-shadow:
     0 12px 28px rgba(0, 0, 0, 0.24),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
   overflow: hidden;
 }
 
@@ -95,31 +95,21 @@ button {
 }
 
 .mark-bg {
-  stroke: rgba(255, 255, 255, 0.14);
-  stroke-width: 1;
+  fill: #0b1218;
+  stroke: rgba(255, 255, 255, 0.12);
+  stroke-width: 1.5;
 }
 
-.mark-flow,
-.mark-tail {
+.mark-glyph {
   fill: none;
-  stroke: url(#brandMarkStroke);
-  stroke-width: 4;
+  stroke: #fff;
+  stroke-width: 8.4;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-.mark-spark {
-  fill: none;
-  stroke: #ffffff;
-  stroke-width: 2;
-  stroke-linecap: round;
-  opacity: 0.9;
-}
-
-.mark-node {
-  fill: #f8fffb;
-  stroke: rgba(88, 225, 190, 0.56);
-  stroke-width: 1.5;
+.mark-terminal {
+  fill: #fff;
 }
 
 h1,
