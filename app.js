@@ -3325,6 +3325,17 @@ function normalizeConditionElement(condition) {
       name: condition.name
     };
   }
+  if (condition.binding?.kind === "sensor") {
+    const variableName = condition.name || condition.binding.name || condition.sourceId || condition.binding.id || "";
+    condition.binding.id = variableName;
+    condition.binding.name = variableName;
+    condition.sourceId = variableName;
+    condition.name = variableName;
+    condition.points = (condition.points || []).map((point) => ({
+      ...point,
+      expression: variableName
+    }));
+  }
   if (!condition.pointId && condition.points[0]) condition.pointId = condition.points[0].id;
   if (!condition.pointLabel && condition.points[0]) condition.pointLabel = condition.points[0].label;
   if (!condition.valueType) condition.valueType = condition.points[0]?.valueType || "BOOL";
@@ -3964,14 +3975,49 @@ function compileCoilExpression(ladder, coil) {
   const graph = buildLadderLogicGraph(ladder, coil.col);
   const target = ladderNodeKey(coil.row, coil.col);
   const starts = Array.from({ length: ladder.rows }, (_, row) => ladderNodeKey(row, 0));
-  const expressions = new Set();
+  const pathMap = new Map();
   starts.forEach((start) => {
     collectLadderPaths(graph, start, target).forEach((terms) => {
-      const expression = terms.length ? terms.map((term) => `(${term})`).join(" AND ") : "TRUE";
-      expressions.add(expression);
+      const path = normalizeLadderPathTerms(terms);
+      pathMap.set(path.join("\u0001"), path);
     });
   });
-  return [...expressions].map((expr) => `(${expr})`).join(" OR ");
+  return ladderPathsToLogicExpression([...pathMap.values()]);
+}
+
+function normalizeLadderPathTerms(terms) {
+  return terms.map((term) => String(term || "").trim()).filter(Boolean);
+}
+
+function ladderPathsToLogicExpression(paths) {
+  if (!paths.length) return "";
+  if (paths.some((path) => !path.length)) return "TRUE";
+  const factored = factorCartesianPathExpression(paths);
+  if (factored) return factored;
+  return paths.map((path) => `(${formatAndTerms(path)})`).join(" OR ");
+}
+
+function factorCartesianPathExpression(paths) {
+  const width = paths[0]?.length || 0;
+  if (!width || paths.some((path) => path.length !== width)) return "";
+  const groups = Array.from({ length: width }, (_, index) => uniqueTerms(paths.map((path) => path[index])));
+  const expectedCount = groups.reduce((count, group) => count * group.length, 1);
+  const actualKeys = new Set(paths.map((path) => path.join("\u0001")));
+  if (expectedCount !== actualKeys.size) return "";
+  return groups.map(formatOrGroup).join(" AND ");
+}
+
+function uniqueTerms(terms) {
+  return Array.from(new Set(terms.filter(Boolean)));
+}
+
+function formatAndTerms(terms) {
+  return terms.map((term) => `(${term})`).join(" AND ");
+}
+
+function formatOrGroup(terms) {
+  if (terms.length === 1) return `(${terms[0]})`;
+  return `(${terms.map((term) => `(${term})`).join(" OR ")})`;
 }
 
 function buildLadderLogicGraph(ladder, beforeCol) {
@@ -5398,7 +5444,7 @@ function getConditionPoints(kind, item) {
   return [{
     id: "value",
     label: valueType === "BOOL" ? "信号" : "比较",
-    expression: item.expression || normalizeName(item.name),
+    expression: kind === "sensor" ? item.name : (item.expression || normalizeName(item.name)),
     address: item.address || "",
     valueType,
     isDefault: true
