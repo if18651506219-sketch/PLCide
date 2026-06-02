@@ -3973,8 +3973,40 @@ function getStepCoilCount(step) {
 
 function compileCoilExpression(ladder, coil) {
   const graph = buildLadderLogicGraph(ladder, coil.col);
+  const reverseGraph = reverseLadderGraph(graph);
   const target = ladderNodeKey(coil.row, coil.col);
   const starts = Array.from({ length: ladder.rows }, (_, row) => ladderNodeKey(row, 0));
+  const reachableFromLeft = collectReachableNodes(graph, starts);
+  const canReachCoil = collectReachableNodes(reverseGraph, [target]);
+  const nodeGroups = compileNodeGroupsBeforeCoil(ladder, coil, reachableFromLeft, canReachCoil);
+  if (nodeGroups.length) return formatNodeGroups(nodeGroups);
+  return compileCoilExpressionByPaths(graph, target, starts);
+}
+
+function compileNodeGroupsBeforeCoil(ladder, coil, reachableFromLeft, canReachCoil) {
+  const groups = [];
+  for (let col = 0; col < coil.col; col += 1) {
+    const terms = ladder.cells
+      .filter((cell) => cell.col === col && ["NO", "NC", "RISING", "FALLING"].includes(cell.value))
+      .filter((cell) => isContactOnPathToCoil(cell, reachableFromLeft, canReachCoil))
+      .sort((a, b) => a.row - b.row)
+      .map(conditionLogicTerm);
+    const unique = uniqueTerms(terms);
+    if (unique.length) groups.push(unique);
+  }
+  return groups;
+}
+
+function isContactOnPathToCoil(cell, reachableFromLeft, canReachCoil) {
+  return reachableFromLeft.has(ladderNodeKey(cell.row, cell.col)) &&
+    canReachCoil.has(ladderNodeKey(cell.row, cell.col + 1));
+}
+
+function formatNodeGroups(groups) {
+  return groups.map(formatOrGroup).join(" AND ");
+}
+
+function compileCoilExpressionByPaths(graph, target, starts) {
   const pathMap = new Map();
   starts.forEach((start) => {
     collectLadderPaths(graph, start, target).forEach((terms) => {
@@ -3983,6 +4015,31 @@ function compileCoilExpression(ladder, coil) {
     });
   });
   return ladderPathsToLogicExpression([...pathMap.values()]);
+}
+
+function reverseLadderGraph(graph) {
+  const reverse = new Map();
+  graph.forEach((edges, from) => {
+    edges.forEach((edge) => {
+      if (!reverse.has(edge.to)) reverse.set(edge.to, []);
+      reverse.get(edge.to).push({ to: from, term: edge.term });
+    });
+  });
+  return reverse;
+}
+
+function collectReachableNodes(graph, starts) {
+  const reached = new Set();
+  const stack = [...starts];
+  while (stack.length) {
+    const node = stack.pop();
+    if (reached.has(node)) continue;
+    reached.add(node);
+    (graph.get(node) || []).forEach((edge) => {
+      if (!reached.has(edge.to)) stack.push(edge.to);
+    });
+  }
+  return reached;
 }
 
 function normalizeLadderPathTerms(terms) {
@@ -4012,12 +4069,12 @@ function uniqueTerms(terms) {
 }
 
 function formatAndTerms(terms) {
-  return terms.map((term) => `(${term})`).join(" AND ");
+  return terms.join(" AND ");
 }
 
 function formatOrGroup(terms) {
-  if (terms.length === 1) return `(${terms[0]})`;
-  return `(${terms.map((term) => `(${term})`).join(" OR ")})`;
+  if (terms.length === 1) return terms[0];
+  return `(${terms.join(" OR ")})`;
 }
 
 function buildLadderLogicGraph(ladder, beforeCol) {
