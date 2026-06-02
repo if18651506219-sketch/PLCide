@@ -270,7 +270,7 @@ function handleStationInput(event) {
   const stepComment = event.target.closest("[data-step-comment]");
   if (stepComment) updateStepComment(stepComment);
   const stepSystemNo = event.target.closest("[data-step-system-no]");
-  if (stepSystemNo) updateStepSystemNo(stepSystemNo);
+  if (stepSystemNo) updateStepSystemNo(stepSystemNo, { render: false });
 }
 
 function createDefaultState() {
@@ -1750,7 +1750,7 @@ function handleStationContextMenu(event) {
 function handleStationChange(event) {
   const stepSystemNo = event.target.closest("[data-step-system-no]");
   if (stepSystemNo) {
-    updateStepSystemNo(stepSystemNo);
+    updateStepSystemNo(stepSystemNo, { render: true, refocus: true });
     return;
   }
 
@@ -1846,7 +1846,7 @@ function handleStationChange(event) {
 
 function handleStationFocusOut(event) {
   const stepSystemNo = event.target.closest("[data-step-system-no]");
-  if (stepSystemNo) updateStepSystemNo(stepSystemNo);
+  if (stepSystemNo) updateStepSystemNo(stepSystemNo, { render: true });
   const stepComment = event.target.closest("[data-step-comment]");
   if (stepComment) updateStepComment(stepComment);
   const libraryInput = event.target.closest("[data-library-edit-input]");
@@ -1862,13 +1862,26 @@ function updateStepComment(input) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-function updateStepSystemNo(input) {
-  const step = getStep(input.dataset.stationId, input.dataset.stepSystemNo);
+function updateStepSystemNo(input, options = {}) {
+  const stationId = input.dataset.stationId;
+  const stepId = input.dataset.stepSystemNo;
+  const step = getStep(stationId, stepId);
   if (!step) return;
   const nextNo = Math.max(1, Number(input.value) || 1);
   step.systemNo = nextNo;
-  markDirty(input.dataset.stationId);
+  markDirty(stationId);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  if (!options.render) return;
+  const selectionStart = input.selectionStart;
+  const selectionEnd = input.selectionEnd;
+  renderAll();
+  if (!options.refocus) return;
+  const nextInput = els.stationScroller.querySelector(`[data-station-id="${stationId}"] [data-step-system-no="${stepId}"]`);
+  if (!nextInput) return;
+  nextInput.focus();
+  if (Number.isFinite(selectionStart) && Number.isFinite(selectionEnd)) {
+    nextInput.setSelectionRange(selectionStart, selectionEnd);
+  }
 }
 
 function updateSelectedCoilTarget(select) {
