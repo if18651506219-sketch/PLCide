@@ -4251,14 +4251,20 @@ function commitCodeEditorValue(code) {
 
 function syncProgramFlowFromCode(stationId, code) {
   const work = getWork(stationId);
-  const blocks = parseCodeStepBlocks(code);
+  const blocks = parseCodeStepBlocks(code).filter((block) => block.stepNo > 0 && block.stepNo !== 999);
+  const codeStepNos = new Set(blocks.map((block) => block.stepNo));
+  const usedStepIds = new Set();
   let changed = false;
-  blocks.forEach((block) => {
-    if (block.stepNo <= 0 || block.stepNo === 999) return;
-    const existing = work.steps.find((step, index) => getStepSystemNo(step, index) === block.stepNo);
+  blocks.forEach((block, blockIndex) => {
+    const existing = findStepForCodeBlock(work, block, blockIndex, codeStepNos, usedStepIds);
     const actions = extractActionsFromCodeBlock(stationId, block.body);
     const hasCondition = /^\s*IF\s+.+\s+THEN\b/im.test(block.body);
     if (existing) {
+      usedStepIds.add(existing.id);
+      if (Number(existing.systemNo) !== block.stepNo) {
+        existing.systemNo = block.stepNo;
+        changed = true;
+      }
       actions.forEach((action) => {
         const command = normalizeCodeCommand(action.command);
         const alreadyExists = existing.actions.some((item) => normalizeCodeCommand(item.command) === command);
@@ -4293,6 +4299,20 @@ function syncProgramFlowFromCode(stationId, code) {
     markDirty(stationId);
   }
   return changed;
+}
+
+function findStepForCodeBlock(work, block, blockIndex, codeStepNos, usedStepIds) {
+  const exact = work.steps.find((step, index) =>
+    !usedStepIds.has(step.id) &&
+    getStepSystemNo(step, index) === block.stepNo
+  );
+  if (exact) return exact;
+
+  const positional = work.steps[blockIndex];
+  if (!positional || usedStepIds.has(positional.id)) return null;
+  const oldNo = getStepSystemNo(positional, blockIndex);
+  if (codeStepNos.has(oldNo)) return null;
+  return positional;
 }
 
 function extractFirstIfExpression(body) {
