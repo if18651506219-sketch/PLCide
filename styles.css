@@ -72,11 +72,11 @@ button {
   display: flex;
   align-items: center;
   gap: 14px;
-  min-width: 380px;
+  min-width: 396px;
 }
 
 .mark {
-  width: 118px;
+  width: 134px;
   height: 44px;
   display: grid;
   place-items: center;
@@ -94,14 +94,14 @@ button {
 .mark-glyph {
   fill: none;
   stroke: #fff;
-  stroke-width: 7;
+  stroke-width: 5.2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .mark-swoosh,
 .mark-arrow {
-  stroke-width: 6.4;
+  stroke-width: 4.8;
 }
 
 .brand-copy {
@@ -2440,12 +2440,12 @@ body.tool-selected .node-condition:hover {
 }
 
 .mark {
-  width: 112px;
+  width: 128px;
   height: 43px;
 }
 
 .brand {
-  min-width: 366px;
+  min-width: 382px;
   gap: 12px;
 }
 
