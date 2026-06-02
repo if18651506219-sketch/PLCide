@@ -568,6 +568,33 @@ body.tool-selected .node-condition:hover {
   background: #167d4c;
 }
 
+.flow-arrow-label {
+  position: absolute;
+  left: 50%;
+  top: 8px;
+  z-index: 2;
+  height: 20px;
+  min-width: 34px;
+  transform: translateX(12px);
+  padding: 0 7px;
+  border: 1px solid #c9d8e6;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #31546d;
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 18px;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(31, 54, 74, 0.08);
+}
+
+.flow-arrow-label:hover,
+.flow-arrow-label:focus-visible {
+  border-color: #8cbde1;
+  color: #12669b;
+  background: #f5fbff;
+}
+
 .condition-row,
 .action-row {
   min-height: 28px;

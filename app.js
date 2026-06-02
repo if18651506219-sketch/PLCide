@@ -627,13 +627,34 @@ function renderCanvas(stationId) {
     parts.push(renderStep(stationId, step, index, coilLinks));
     const coilCount = getStepCoilCount(step);
     if (index < work.steps.length - 1 || work.arrows.includes(index + 1) || coilCount > 0) {
+      const labels = getFlowArrowLabels(work, step, index, coilLinks);
       parts.push(renderFlowArrow(stationId, index + 1, {
         count: Math.max(1, coilCount),
-        coilDriven: coilCount > 0
+        coilDriven: coilCount > 0,
+        labels
       }));
     }
   });
   return parts.join("");
+}
+
+function getFlowArrowLabels(work, step, index, coilLinks) {
+  const outgoing = coilLinks
+    .filter((link) => link.sourceStepId === step.id)
+    .map((link, linkIndex) => ({
+      text: `S${link.targetStepNo}`,
+      targetStepId: link.resolvedTargetStepId,
+      title: `线圈${linkIndex + 1} 跳转到 S${link.targetStepNo}`
+    }));
+  if (outgoing.length) return outgoing;
+  const nextStep = work.steps[index + 1];
+  if (!nextStep) return [];
+  const nextNo = getStepSystemNo(nextStep, index + 1);
+  return [{
+    text: `S${nextNo}`,
+    targetStepId: nextStep.id,
+    title: `跳转到 S${nextNo}`
+  }];
 }
 
 function renderStep(stationId, step, index, coilLinks = null) {
@@ -1184,9 +1205,18 @@ function renderFlowArrow(stationId, index, options = {}) {
     const left = count === 1 ? 50 : 50 + (arrowIndex - (count - 1) / 2) * 16;
     return `<span style="left:${left}%"></span>`;
   }).join("");
+  const labels = Array.isArray(options.labels) ? options.labels : [];
+  const labelMarkup = labels.map((label, labelIndex) => {
+    const left = labels.length === 1 ? 50 : 50 + (labelIndex - (labels.length - 1) / 2) * 34;
+    const jumpAttrs = label.targetStepId
+      ? ` data-jump-step="${label.targetStepId}" data-jump-station="${stationId}"`
+      : "";
+    return `<button class="flow-arrow-label" type="button" style="left:${left}%"${jumpAttrs} title="${escapeHtml(label.title || label.text)}">${escapeHtml(label.text)}</button>`;
+  }).join("");
   return `
     <div class="flow-arrow${active}${coilClass}${topClass}" data-flow-arrow="${index}" data-station-id="${stationId}" title="${options.coilDriven ? `${count} 个线圈输出` : "点击选择插入位置"}">
       ${spans}
+      ${labelMarkup}
     </div>
   `;
 }
