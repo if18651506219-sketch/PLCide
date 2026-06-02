@@ -71,33 +71,24 @@ button {
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 11px;
   min-width: 330px;
 }
 
 .mark {
-  width: 46px;
-  height: 46px;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.055);
-  box-shadow:
-    0 12px 28px rgba(0, 0, 0, 0.24),
-    inset 0 1px 0 rgba(255, 255, 255, 0.16);
-  overflow: hidden;
+  flex: 0 0 auto;
+  overflow: visible;
 }
 
 .brand-mark-svg {
   width: 100%;
   height: 100%;
   display: block;
-}
-
-.mark-bg {
-  fill: #0b1218;
-  stroke: rgba(255, 255, 255, 0.12);
-  stroke-width: 1.5;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.28));
 }
 
 .mark-glyph {
@@ -112,6 +103,12 @@ button {
   fill: #fff;
 }
 
+.brand-copy {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
 h1,
 h2,
 h3,
@@ -120,9 +117,25 @@ p {
 }
 
 .brand h1 {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  color: #fff;
   font-size: 18px;
-  line-height: 1.2;
+  line-height: 1;
   letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.brand-cn {
+  font-size: 18px;
+  font-weight: 850;
+}
+
+.brand-product {
+  color: #dceaf7;
+  font-size: 16px;
+  font-weight: 760;
 }
 
 .brand p,
@@ -134,7 +147,20 @@ p {
 }
 
 .topbar .brand p {
-  color: #b9c5d1;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #9fb0bf;
+  font-weight: 700;
+  line-height: 1;
+  margin-top: 0;
+}
+
+.brand-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(151, 181, 207, 0.7);
 }
 
 .toolbar {
@@ -2413,23 +2439,29 @@ body.tool-selected .node-condition:hover {
 }
 
 .mark {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
+  width: 43px;
+  height: 43px;
 }
 
 .brand {
-  min-width: 250px;
-  gap: 9px;
+  min-width: 282px;
+  gap: 10px;
 }
 
 .brand h1 {
-  font-size: 16px;
+  font-size: 17px;
+}
+
+.brand-cn {
+  font-size: 18px;
+}
+
+.brand-product {
+  font-size: 15px;
 }
 
 .brand p {
   font-size: 11px;
-  margin-top: 2px;
 }
 
 .toolbar {
