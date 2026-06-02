@@ -31,7 +31,24 @@
     <div class="app-shell">
       <header class="topbar">
         <div class="brand">
-          <div class="mark">PLC</div>
+          <div class="mark" aria-label="PLC-AI 快速搭建工具">
+            <svg class="brand-mark-svg" viewBox="0 0 48 48" role="img" aria-hidden="true">
+              <defs>
+                <linearGradient id="brandMarkBg" x1="8" y1="6" x2="42" y2="44" gradientUnits="userSpaceOnUse">
+                  <stop offset="0" stop-color="#78e4c8" />
+                  <stop offset="0.58" stop-color="#43b99d" />
+                  <stop offset="1" stop-color="#2076d2" />
+                </linearGradient>
+              </defs>
+              <rect x="3" y="3" width="42" height="42" rx="10" fill="url(#brandMarkBg)" />
+              <path class="mark-grid" d="M15 16h14M15 24h20M15 32h14M15 16v16M29 16v16" />
+              <path class="mark-bolt" d="M31 11 23 25h7l-4 12 11-17h-7l1-9Z" />
+              <path class="mark-ai" d="M36 8v5M33.5 10.5h5M12 35v3M10.5 36.5h3" />
+              <circle class="mark-dot" cx="15" cy="16" r="2.2" />
+              <circle class="mark-dot" cx="15" cy="24" r="2.2" />
+              <circle class="mark-dot" cx="15" cy="32" r="2.2" />
+            </svg>
+          </div>
           <div>
             <h1>热套压机 PLC-AI IDE</h1>
             <p>器件库 + 程序流 = 工站</p>
