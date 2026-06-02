@@ -3973,37 +3973,9 @@ function getStepCoilCount(step) {
 
 function compileCoilExpression(ladder, coil) {
   const graph = buildLadderLogicGraph(ladder, coil.col);
-  const reverseGraph = reverseLadderGraph(graph);
   const target = ladderNodeKey(coil.row, coil.col);
   const starts = Array.from({ length: ladder.rows }, (_, row) => ladderNodeKey(row, 0));
-  const reachableFromLeft = collectReachableNodes(graph, starts);
-  const canReachCoil = collectReachableNodes(reverseGraph, [target]);
-  const nodeGroups = compileNodeGroupsBeforeCoil(ladder, coil, reachableFromLeft, canReachCoil);
-  if (nodeGroups.length) return formatNodeGroups(nodeGroups);
   return compileCoilExpressionByPaths(graph, target, starts);
-}
-
-function compileNodeGroupsBeforeCoil(ladder, coil, reachableFromLeft, canReachCoil) {
-  const groups = [];
-  for (let col = 0; col < coil.col; col += 1) {
-    const terms = ladder.cells
-      .filter((cell) => cell.col === col && ["NO", "NC", "RISING", "FALLING"].includes(cell.value))
-      .filter((cell) => isContactOnPathToCoil(cell, reachableFromLeft, canReachCoil))
-      .sort((a, b) => a.row - b.row)
-      .map(conditionLogicTerm);
-    const unique = uniqueTerms(terms);
-    if (unique.length) groups.push(unique);
-  }
-  return groups;
-}
-
-function isContactOnPathToCoil(cell, reachableFromLeft, canReachCoil) {
-  return reachableFromLeft.has(ladderNodeKey(cell.row, cell.col)) &&
-    canReachCoil.has(ladderNodeKey(cell.row, cell.col + 1));
-}
-
-function formatNodeGroups(groups) {
-  return groups.map(formatOrGroup).join(" AND ");
 }
 
 function compileCoilExpressionByPaths(graph, target, starts) {
@@ -4017,31 +3989,6 @@ function compileCoilExpressionByPaths(graph, target, starts) {
   return ladderPathsToLogicExpression([...pathMap.values()]);
 }
 
-function reverseLadderGraph(graph) {
-  const reverse = new Map();
-  graph.forEach((edges, from) => {
-    edges.forEach((edge) => {
-      if (!reverse.has(edge.to)) reverse.set(edge.to, []);
-      reverse.get(edge.to).push({ to: from, term: edge.term });
-    });
-  });
-  return reverse;
-}
-
-function collectReachableNodes(graph, starts) {
-  const reached = new Set();
-  const stack = [...starts];
-  while (stack.length) {
-    const node = stack.pop();
-    if (reached.has(node)) continue;
-    reached.add(node);
-    (graph.get(node) || []).forEach((edge) => {
-      if (!reached.has(edge.to)) stack.push(edge.to);
-    });
-  }
-  return reached;
-}
-
 function normalizeLadderPathTerms(terms) {
   return terms.map((term) => String(term || "").trim()).filter(Boolean);
 }
@@ -4049,9 +3996,7 @@ function normalizeLadderPathTerms(terms) {
 function ladderPathsToLogicExpression(paths) {
   if (!paths.length) return "";
   if (paths.some((path) => !path.length)) return "TRUE";
-  const factored = factorCartesianPathExpression(paths);
-  if (factored) return factored;
-  return paths.map((path) => `(${formatAndTerms(path)})`).join(" OR ");
+  return renderLogicTree(factorPathLogic(paths));
 }
 
 function factorCartesianPathExpression(paths) {
@@ -4062,6 +4007,124 @@ function factorCartesianPathExpression(paths) {
   const actualKeys = new Set(paths.map((path) => path.join("\u0001")));
   if (expectedCount !== actualKeys.size) return "";
   return groups.map(formatOrGroup).join(" AND ");
+}
+
+function factorPathLogic(paths) {
+  const normalized = dedupePaths(paths).filter((path) => path.length);
+  if (!normalized.length) return logicTerm("TRUE");
+  if (normalized.length === 1) return logicAnd(normalized[0].map(logicTerm));
+
+  const sharedPrefix = getSharedPrefix(normalized);
+  if (sharedPrefix.length) {
+    return logicAnd([
+      ...sharedPrefix.map(logicTerm),
+      factorPathLogic(normalized.map((path) => path.slice(sharedPrefix.length)))
+    ]);
+  }
+
+  const sharedSuffix = getSharedSuffix(normalized);
+  if (sharedSuffix.length) {
+    return logicAnd([
+      factorPathLogic(normalized.map((path) => path.slice(0, path.length - sharedSuffix.length))),
+      ...sharedSuffix.map(logicTerm)
+    ]);
+  }
+
+  const cartesian = factorCartesianPathTree(normalized);
+  if (cartesian) return cartesian;
+
+  const groups = groupPathsByFirstTerm(normalized);
+  return logicOr(groups.map((group) => logicAnd([
+    logicTerm(group.term),
+    factorPathLogic(group.rest)
+  ])));
+}
+
+function dedupePaths(paths) {
+  const seen = new Set();
+  const result = [];
+  paths.forEach((path) => {
+    const key = path.join("\u0001");
+    if (seen.has(key)) return;
+    seen.add(key);
+    result.push(path);
+  });
+  return result;
+}
+
+function getSharedPrefix(paths) {
+  const prefix = [];
+  for (let index = 0; ; index += 1) {
+    const term = paths[0][index];
+    if (!term || !paths.every((path) => path[index] === term)) break;
+    prefix.push(term);
+  }
+  return prefix;
+}
+
+function getSharedSuffix(paths) {
+  const suffix = [];
+  for (let offset = 1; ; offset += 1) {
+    const term = paths[0][paths[0].length - offset];
+    if (!term || !paths.every((path) => path[path.length - offset] === term)) break;
+    suffix.unshift(term);
+  }
+  return suffix;
+}
+
+function factorCartesianPathTree(paths) {
+  const width = paths[0]?.length || 0;
+  if (!width || paths.some((path) => path.length !== width)) return null;
+  const groups = Array.from({ length: width }, (_, index) => uniqueTerms(paths.map((path) => path[index])));
+  const expectedCount = groups.reduce((count, group) => count * group.length, 1);
+  const actualKeys = new Set(paths.map((path) => path.join("\u0001")));
+  if (expectedCount !== actualKeys.size) return null;
+  return logicAnd(groups.map((group) => logicOr(group.map(logicTerm))));
+}
+
+function groupPathsByFirstTerm(paths) {
+  const groups = [];
+  paths.forEach((path) => {
+    const term = path[0];
+    let group = groups.find((item) => item.term === term);
+    if (!group) {
+      group = { term, rest: [] };
+      groups.push(group);
+    }
+    group.rest.push(path.slice(1));
+  });
+  return groups;
+}
+
+function logicTerm(value) {
+  return { type: "term", value };
+}
+
+function logicAnd(children) {
+  const flat = [];
+  children.forEach((child) => {
+    if (!child) return;
+    if (child.type === "AND") flat.push(...child.children);
+    else flat.push(child);
+  });
+  return flat.length === 1 ? flat[0] : { type: "AND", children: flat };
+}
+
+function logicOr(children) {
+  const flat = [];
+  children.forEach((child) => {
+    if (!child) return;
+    if (child.type === "OR") flat.push(...child.children);
+    else flat.push(child);
+  });
+  return flat.length === 1 ? flat[0] : { type: "OR", children: flat };
+}
+
+function renderLogicTree(node, parentType = "") {
+  if (!node) return "";
+  if (node.type === "term") return node.value;
+  const text = node.children.map((child) => renderLogicTree(child, node.type)).join(` ${node.type} `);
+  return parentType === "AND" && node.type === "OR" ? `(${text})` : text;
 }
 
 function uniqueTerms(terms) {
