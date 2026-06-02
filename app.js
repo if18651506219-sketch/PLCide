@@ -1372,7 +1372,7 @@ function handleStationClick(event) {
   }
   const closedOverlay = closeFloatingEditorsForClick(event);
   if (closedOverlay && !event.target.closest("[data-ladder-cell], [data-grid-context], [data-cell-menu], .ladder-selected-editor, button, select, input, .library-item, .action-card, .flow-step, [data-condition-id], [data-ladder-element], [data-wire-index]")) {
-    renderAll();
+    renderProgramWorkspace({ code: false });
     return;
   }
 
@@ -1412,7 +1412,7 @@ function handleStationClick(event) {
     event.stopPropagation();
     const libraryStationId = addLibraryItem.closest("[data-variable-station-id]")?.dataset.variableStationId || stationNode.dataset.stationId;
     addCustomLibraryItem(libraryStationId, addLibraryItem.dataset.libraryAdd);
-    saveAndRender();
+    saveAndRenderProgram();
     return;
   }
 
@@ -1433,7 +1433,7 @@ function handleStationClick(event) {
     const work = getWork(libraryStationId);
     const kind = toggle.dataset.libraryToggle;
     work.libraryOpen[kind] = work.libraryOpen[kind] === false;
-    saveAndRender();
+    saveAndRenderProgram({ code: false });
     return;
   }
 
@@ -1443,12 +1443,12 @@ function handleStationClick(event) {
     activeGridContext = null;
     if (stationAction.dataset.stationAction === "add-condition") {
       addConditionBoxFromToolbar(stationNode.dataset.stationId);
-      saveAndRender();
+      saveAndRenderProgram();
       return;
     }
     if (stationAction.dataset.stationAction === "add-step") {
       addActionStepFromToolbar(stationNode.dataset.stationId);
-      saveAndRender();
+      saveAndRenderProgram();
       return;
     }
     if (stationAction.dataset.stationAction === "delete-selected") {
@@ -1461,7 +1461,7 @@ function handleStationClick(event) {
       pasteCopiedSteps();
       return;
     }
-    saveAndRender();
+    saveAndRenderProgram();
     return;
   }
 
@@ -1525,7 +1525,7 @@ function handleStationClick(event) {
     const type = ladderElement.dataset.ladderKind === "contact" ? "condition" : "ladder";
     selectComponent(type, ladderElement.dataset.stationId, ladderElement.dataset.stepId, ladderElement.dataset.ladderElement);
     activeConditionBox = { stationId: ladderElement.dataset.stationId, stepId: ladderElement.dataset.stepId };
-    renderAll();
+    renderProgramWorkspace({ code: false });
     return;
   }
 
@@ -1551,7 +1551,7 @@ function handleStationClick(event) {
   if (arrow) {
     clearConditionSelectionForArrow();
     activeInsert = { stationId: stationNode.dataset.stationId, index: Number(arrow.dataset.flowArrow) };
-    renderAll();
+    renderProgramWorkspace({ code: false });
     return;
   }
 
@@ -1568,7 +1568,7 @@ function handleStationClick(event) {
       return;
     }
     selectComponent("wire", wire.dataset.stationId, wire.dataset.stepId, wire.dataset.wireIndex);
-    renderAll();
+    renderProgramWorkspace({ code: false });
     return;
   }
 
@@ -1580,7 +1580,7 @@ function handleStationClick(event) {
     if (!action) return;
     action.waitDone = action.waitDone === false;
     markDirty(card.dataset.stationId);
-    saveAndRender();
+    saveAndRenderProgram();
     return;
   }
 
@@ -1590,21 +1590,21 @@ function handleStationClick(event) {
   if (conditionChip) {
     selectComponent("condition", conditionChip.dataset.stationId, conditionChip.dataset.stepId, conditionChip.dataset.conditionId);
     activeConditionBox = { stationId: conditionChip.dataset.stationId, stepId: conditionChip.dataset.stepId };
-    renderAll();
+    renderProgramWorkspace({ code: false });
     return;
   }
 
   const branch = event.target.closest("[data-branch-index]");
   if (branch) {
     selectComponent("branch", branch.dataset.stationId, branch.dataset.stepId, `${branch.dataset.branchIndex}:${branch.dataset.branchLane}`);
-    renderAll();
+    renderProgramWorkspace({ code: false });
     return;
   }
 
   const actionCard = event.target.closest(".action-card");
   if (actionCard && !event.target.closest("select, input, .done-icon, .drag-handle")) {
     selectComponent("action", actionCard.dataset.stationId, actionCard.dataset.stepId, actionCard.dataset.actionId);
-    renderAll();
+    renderProgramWorkspace({ code: false });
     return;
   }
 
@@ -1618,7 +1618,7 @@ function handleStationClick(event) {
     if (!keepCell) selectedComponent = null;
     activeInsert = null;
     if (!keepCell) activeCellMenu = null;
-    renderAll();
+    renderProgramWorkspace({ code: false });
     return;
   }
 
@@ -1642,7 +1642,7 @@ function handleStationClick(event) {
       selectedComponent = null;
     }
     activeInsert = null;
-    renderAll();
+    renderProgramWorkspace({ code: false });
   }
 }
 
@@ -1679,7 +1679,7 @@ function handleStationDoubleClick(event) {
   const conditionChip = event.target.closest("[data-condition-id]");
   if (conditionChip) {
     toggleConditionContact(conditionChip.dataset.stationId, conditionChip.dataset.stepId, conditionChip.dataset.conditionId);
-    saveAndRender();
+    saveAndRenderProgram();
     return;
   }
 
@@ -1698,7 +1698,7 @@ function handleStationDoubleClick(event) {
   addArrow(stationId, work.steps.length);
   activeInsert = { stationId, index: work.steps.length };
   setActiveStation(stationId);
-  saveAndRender();
+  saveAndRenderProgram({ code: false });
 }
 
 function addConditionBoxFromToolbar(stationId) {
@@ -1788,7 +1788,7 @@ function handleStationContextMenu(event) {
     row: Number(cell.dataset.row),
     col: Number(cell.dataset.col)
   };
-  renderAll();
+  renderProgramWorkspace({ code: false });
 }
 
 function handleStationChange(event) {
@@ -1848,14 +1848,14 @@ function handleStationChange(event) {
     activeStep = null;
     activeConditionBox = null;
     activeInsert = null;
-    saveAndRender();
+    saveAndRenderProgram();
     return;
   }
 
   const zoneStationSwitch = event.target.closest("[data-zone-station-select]");
   if (zoneStationSwitch) {
     setZoneStation(zoneStationSwitch.dataset.zoneStationSelect, zoneStationSwitch.value);
-    saveAndRender();
+    saveAndRenderProgram();
     return;
   }
 
@@ -1885,7 +1885,7 @@ function handleStationChange(event) {
     action.timeoutMs = nextDuration + 1000;
   }
   markDirty(card.dataset.stationId);
-  saveAndRender();
+  saveAndRenderProgram();
 }
 
 function handleStationFocusOut(event) {
@@ -1918,7 +1918,7 @@ function updateStepSystemNo(input, options = {}) {
   if (!options.render) return;
   const selectionStart = input.selectionStart;
   const selectionEnd = input.selectionEnd;
-  renderAll();
+  renderProgramWorkspace();
   if (!options.refocus) return;
   const nextInput = els.stationScroller.querySelector(`[data-station-id="${stationId}"] [data-step-system-no="${stepId}"]`);
   if (!nextInput) return;
@@ -1938,7 +1938,7 @@ function updateSelectedCoilTarget(select) {
   cell.targetStepId = select.value || "";
   selectedSteps = cell.targetStepId ? [step.id, cell.targetStepId] : [step.id];
   markDirty(context.stationId);
-  saveAndRender();
+  saveAndRenderProgram();
 }
 
 function applyLayoutVars() {
@@ -2007,7 +2007,7 @@ function insertPaletteItemByDoubleClick(node) {
       work.steps.splice(insertIndex, 0, step);
       addPayloadActionToStep(stationId, step.id, payload);
       activeInsert = null;
-      saveAndRender();
+      saveAndRenderProgram();
       return;
     }
 
@@ -2018,19 +2018,19 @@ function insertPaletteItemByDoubleClick(node) {
       activeStep = { stationId, stepId: step.id };
     }
     addPayloadActionToStep(stationId, activeStep.stepId, payload);
-    saveAndRender();
+    saveAndRenderProgram();
     return;
   }
 
   if (kind === "sensor" || kind === "system") {
     addConditionFromLibrary(stationId, item);
-    saveAndRender();
+    saveAndRenderProgram();
     return;
   }
 
   if (kind === "local" || kind === "global") {
     addConditionFromLibrary(stationId, item);
-    saveAndRender();
+    saveAndRenderProgram();
   }
 }
 
@@ -2096,7 +2096,7 @@ function autoFillConditionCell(itemNode) {
   selectedCells = [{ stationId, stepId: step.id, row, col }];
   activeCellMenu = { stationId, stepId: step.id, row, col };
   markDirty(stationId);
-  saveAndRender();
+  saveAndRenderProgram();
   return true;
 }
 
@@ -2263,7 +2263,7 @@ function saveLibraryInput(input, options = {}) {
       });
     }
   } else {
-    renderAll();
+    renderProgramWorkspace();
   }
 }
 
@@ -2383,10 +2383,10 @@ function saveTargetEditor(downloadFile = false) {
   }
   updateActionsForEditedTargets(stationId, id, targets);
   markDirty(stationId);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  saveStateNow();
   if (downloadFile) downloadLocalProjectFile();
   closeTargetEditor();
-  renderAll();
+  renderProgramWorkspace();
 }
 
 function updateActionsForEditedTargets(stationId, deviceId, targets) {
@@ -2433,7 +2433,7 @@ function tryBindSelectedCondition(itemNode) {
     selectedCells = [{ stationId, stepId: step.id, row: position.row, col: position.col }];
     activeCellMenu = { stationId, stepId: step.id, row: position.row, col: position.col };
     markDirty(stationId);
-    saveAndRender();
+    saveAndRenderProgram();
     return true;
   }
   if (!canBindSelectedCondition(stationId)) return false;
@@ -2444,7 +2444,7 @@ function tryBindSelectedCondition(itemNode) {
   bindConditionToSource(condition, itemNode.dataset.kind, item);
   activeConditionBox = { stationId, stepId: step.id };
   markDirty(stationId);
-  saveAndRender();
+  saveAndRenderProgram();
   return true;
 }
 
@@ -2457,7 +2457,7 @@ function applyConditionTool(stationId, stepId, tool) {
   activeConditionBox = { stationId, stepId: step.id };
   selectedSteps = [step.id];
   activeInsert = null;
-  renderAll();
+  renderProgramWorkspace({ code: false });
 }
 
 function handleLadderCellClick(cellNode) {
@@ -2475,7 +2475,7 @@ function handleLadderCellClick(cellNode) {
   selectedCells = [{ stationId, stepId, row, col }];
   selectedComponent = { type: "ladderCell", stationId, stepId, id: `${row}:${col}` };
   activeCellMenu = { stationId, stepId, row, col };
-  renderAll();
+  renderProgramWorkspace({ code: false });
 }
 
 function toggleCellEdge(edgeNode) {
@@ -2509,7 +2509,7 @@ function toggleCellEdgeData(edge) {
   activeConditionBox = { stationId, stepId };
   activeCellMenu = { stationId, stepId, row, col };
   markDirty(stationId);
-  saveAndRender();
+  saveAndRenderProgram();
 }
 
 function canSetCellEdgeSegment(ladder, row, col, side, segment) {
@@ -2576,7 +2576,7 @@ function toggleCellEdgeLegacy(edgeNode) {
   activeConditionBox = { stationId, stepId };
   activeCellMenu = { stationId, stepId, row, col };
   markDirty(stationId);
-  saveAndRender();
+  saveAndRenderProgram();
 }
 
 function startCellEdgeBrush(event, edgeNode) {
@@ -2624,7 +2624,7 @@ function finishCellEdgeBrush() {
   edgeBrush = null;
   brush.cleanup?.();
   markDirty(brush.stationId);
-  saveAndRender();
+  saveAndRenderProgram();
 }
 
 function paintCellEdgeSegment(edgeNode) {
@@ -2707,7 +2707,7 @@ function applyCellMenuValue(value) {
     ? activeGridContext
     : null;
   markDirty(stationId);
-  saveAndRender();
+  saveAndRenderProgram();
 }
 
 function validateLadderCellValue(ladder, row, col, value) {
@@ -2777,7 +2777,7 @@ function insertGridCells(direction, count) {
   activeGridContext = { stationId, stepId, row, col, count };
   activeCellMenu = { stationId, stepId, row, col };
   markDirty(stationId);
-  saveAndRender();
+  saveAndRenderProgram();
 }
 
 function handleGridContextAction(action) {
@@ -2793,7 +2793,7 @@ function handleGridContextAction(action) {
   if (action === "paste") pasteCopiedCell();
   if (action === "delete") {
     deleteSelectedCells();
-    saveAndRender();
+    saveAndRenderProgram();
     return;
   }
   if (action === "delete-row") {
@@ -2804,7 +2804,7 @@ function handleGridContextAction(action) {
     deleteGridCol(stationId, stepId, col);
     return;
   }
-  saveAndRender();
+  saveAndRenderProgram();
 }
 
 function deleteGridRow(stationId, stepId, row) {
@@ -2826,7 +2826,7 @@ function deleteGridRow(stationId, stepId, row) {
   selectedComponent = null;
   hideConditionCellUi();
   markDirty(stationId);
-  saveAndRender();
+  saveAndRenderProgram();
 }
 
 function deleteGridCol(stationId, stepId, col) {
@@ -2848,7 +2848,7 @@ function deleteGridCol(stationId, stepId, col) {
   selectedComponent = null;
   hideConditionCellUi();
   markDirty(stationId);
-  saveAndRender();
+  saveAndRenderProgram();
 }
 
 function getSelectedGridContext() {
@@ -2897,7 +2897,7 @@ function pasteCopiedCell() {
   ladder.rows = Math.max(ladder.rows, position.row + Math.max(...copiedCells.map((cell) => Number(cell.rowOffset) || 0)) + 1);
   ladder.cols = Math.max(ladder.cols, position.col + Math.max(...copiedCells.map((cell) => Number(cell.colOffset) || 0)) + 1);
   markDirty(selectedComponent.stationId);
-  saveAndRender();
+  saveAndRenderProgram();
   return true;
 }
 
@@ -2944,7 +2944,7 @@ function insertConditionToolAtSlot(slot) {
   activeConditionBox = { stationId, stepId: step.id };
   selectedSteps = [step.id];
   markDirty(stationId);
-  saveAndRender();
+  saveAndRenderProgram();
 }
 
 function insertLadderToolAtSlot(slot) {
@@ -2960,7 +2960,7 @@ function insertLadderToolAtSlot(slot) {
   if (existing) {
     const type = existing.kind === "contact" ? "condition" : "ladder";
     selectComponent(type, stationId, stepId, existing.id);
-    renderAll();
+    renderProgramWorkspace({ code: false });
     return;
   }
   const kind = activeConditionTool === "wire"
@@ -2978,7 +2978,7 @@ function insertLadderToolAtSlot(slot) {
   activeConditionBox = { stationId, stepId };
   selectedSteps = [stepId];
   markDirty(stationId);
-  saveAndRender();
+  saveAndRenderProgram();
 }
 
 function insertElementAtSlot(step, lane, index, element) {
@@ -3036,7 +3036,7 @@ function updateConditionPoint(select) {
   if (!condition) return;
   applyConditionPoint(condition, select.value);
   markDirty(chip.dataset.stationId);
-  saveAndRender();
+  saveAndRenderProgram();
 }
 
 function updateConditionCompare(field) {
@@ -3050,7 +3050,7 @@ function updateConditionCompare(field) {
   condition.compareValue = value?.value ?? condition.compareValue;
   condition.expression = conditionExpression(condition);
   markDirty(chip.dataset.stationId);
-  saveAndRender();
+  saveAndRenderProgram();
 }
 
 function deleteSelectedSteps(stationId = state.currentStationId) {
@@ -3455,7 +3455,7 @@ function activateWireBranch(stationId, stepId, index, key, allowRemove = false) 
   }
   selectComponent("branch", stationId, stepId, `${index}:${key}`);
   markDirty(stationId);
-  saveAndRender();
+  saveAndRenderProgram();
 }
 
 function handleWireBranchButton(button) {
@@ -3489,7 +3489,7 @@ function pasteCopiedSteps() {
     ? { stationId, stepId: clones[clones.length - 1].id }
     : null;
   markDirty(stationId);
-  saveAndRender();
+  saveAndRenderProgram();
 }
 
 function cloneStep(step) {
@@ -3556,7 +3556,7 @@ function startMarqueeSelect(event, canvas) {
       activeConditionBox = null;
       selectionBox.remove();
       selectionBox = null;
-      renderAll();
+      renderProgramWorkspace({ code: false });
     }
   };
 
@@ -3615,7 +3615,7 @@ function startLadderMarqueeSelect(event, svg) {
       suppressLadderClick = true;
       selectionBox.remove();
       selectionBox = null;
-      renderAll();
+      renderProgramWorkspace({ code: false });
     }
   };
 
@@ -3647,7 +3647,7 @@ function handleStepButton(stationId, stepId, action) {
     [work.steps[index + 1], work.steps[index]] = [work.steps[index], work.steps[index + 1]];
   }
   markDirty(stationId);
-  saveAndRender();
+  saveAndRenderProgram();
 }
 
 function handleConditionButton(button) {
@@ -3661,7 +3661,7 @@ function handleConditionButton(button) {
     step.conditions = step.conditions.filter((item) => item.id !== condition.id);
   }
   markDirty(chip.dataset.stationId);
-  saveAndRender();
+  saveAndRenderProgram();
 }
 
 function addPayloadActionToStep(stationId, stepId, payload) {
@@ -3800,7 +3800,7 @@ function dropStepOnZone(zone, payload) {
   activeStep = { stationId: payload.stationId, stepId: payload.stepId };
   activeConditionBox = step.hasConditionBox ? { stationId: payload.stationId, stepId: payload.stepId } : null;
   markDirty(payload.stationId);
-  saveAndRender();
+  saveAndRenderProgram();
 }
 
 function dropExistingActionOnZone(zone, payload) {
@@ -3820,7 +3820,7 @@ function dropExistingActionOnZone(zone, payload) {
   }
   markDirty(payload.sourceStationId);
   markDirty(stationId);
-  saveAndRender();
+  saveAndRenderProgram();
 }
 
 function moveExistingAction(payload, targetStationId, targetStepId) {
@@ -4428,12 +4428,12 @@ function setSummaryMessage(message) {
 }
 
 function jumpToStep(stationId, stepId) {
-  const node = els.stationScroller.querySelector(`[data-station-id="${stationId}"] [data-step-id="${stepId}"]`);
-  if (!node) return;
   activeStep = { stationId, stepId };
   selectedSteps = [stepId];
+  renderProgramWorkspace({ code: false });
+  const node = els.stationScroller.querySelector(`[data-station-id="${stationId}"] [data-step-id="${stepId}"]`);
+  if (!node) return;
   node.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" });
-  renderAll();
 }
 
 function renderCodePreview() {
@@ -4578,7 +4578,7 @@ function flushCodeFlowSync() {
   updateCodeEditBadges();
   renderAiSummary();
   if (!synced) return;
-  renderAll();
+  renderProgramWorkspace({ code: false });
   if (!cursor || getCodeStationId() !== stationId) return;
   els.codePreview.focus();
   els.codePreview.setSelectionRange(cursor.start, cursor.end);
@@ -5100,6 +5100,24 @@ function scheduleStateSave() {
 function saveAndRender() {
   saveStateNow();
   renderAll();
+}
+
+function renderProgramWorkspace(options = {}) {
+  const preserveScroll = options.preserveScroll !== false;
+  const scroll = preserveScroll ? captureScrollState() : null;
+  els.stationScroller.innerHTML = renderStationWorkspaces();
+  syncCanvasNodeWidth();
+  updateCodeEditBadges();
+  if (options.code !== false) {
+    renderCodePreview();
+    renderAiSummary();
+  }
+  if (scroll) restoreScrollState(scroll);
+}
+
+function saveAndRenderProgram(options = {}) {
+  saveStateNow();
+  renderProgramWorkspace(options);
 }
 
 function captureScrollState() {
