@@ -1900,9 +1900,16 @@ function updateSelectedCoilTarget(select) {
 function applyLayoutVars() {
   state.layout = { ...createDefaultState().layout, ...(state.layout || {}) };
   state.layout.libraryWidth = clamp(Number(state.layout.libraryWidth) || 240, 190, 420);
-  state.layout.codeWidth = clamp(Number(state.layout.codeWidth) || 360, 260, 720);
+  state.layout.codeWidth = clamp(Number(state.layout.codeWidth) || 360, 280, getMaxCodeWidth());
   document.documentElement.style.setProperty("--library-width", `${state.layout.libraryWidth}px`);
   document.documentElement.style.setProperty("--code-width", `${state.layout.codeWidth}px`);
+}
+
+function getMaxCodeWidth() {
+  const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 1280;
+  const stationVisible = state.programVisible || state.variableVisible;
+  const reservedStationWidth = stationVisible ? 520 : 0;
+  return Math.max(320, Math.min(720, viewportWidth - reservedStationWidth - 42));
 }
 
 function handlePaneResizePointerDown(event) {
@@ -1920,7 +1927,7 @@ function handlePaneResizePointerDown(event) {
       state.layout.libraryWidth = clamp(startLibrary + moveEvent.clientX - startX, 190, 420);
     }
     if (type === "workspace") {
-      state.layout.codeWidth = clamp(startCode + startX - moveEvent.clientX, 260, 720);
+      state.layout.codeWidth = clamp(startCode + startX - moveEvent.clientX, 280, getMaxCodeWidth());
     }
     applyLayoutVars();
   };

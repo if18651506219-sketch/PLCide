@@ -197,7 +197,7 @@ button:hover {
 .workspace {
   flex: 1;
   display: grid;
-  grid-template-columns: 286px minmax(620px, 1fr) 392px;
+  grid-template-columns: minmax(0, 1fr) 6px minmax(280px, var(--code-width, 360px));
   gap: 12px;
   padding: 12px;
   min-height: 0;
@@ -1226,8 +1226,8 @@ body.tool-selected .node-condition:hover {
 
 /* Keep the video-style condition frame visible. This block intentionally stays at EOF. */
 .station-workspace {
-  grid-template-columns: var(--library-width, 240px) 6px minmax(900px, 1fr);
-  min-width: 1160px;
+  grid-template-columns: var(--library-width, 240px) 6px minmax(0, 1fr);
+  min-width: 0;
 }
 
 .flow-canvas {
@@ -1320,8 +1320,8 @@ body.tool-selected .node-condition:hover {
 
 @media (max-width: 900px) {
   .station-workspace {
-    min-width: 1160px;
-    grid-template-columns: 220px minmax(900px, 1fr);
+    min-width: 760px;
+    grid-template-columns: 220px minmax(0, 1fr);
   }
 }
 
@@ -1853,8 +1853,8 @@ body.tool-selected .node-condition:hover {
 
 /* Final ladder-video overrides. Keep these last so the demo is not squeezed by compact defaults. */
 .station-workspace {
-  grid-template-columns: var(--library-width, 240px) 6px minmax(900px, 1fr);
-  min-width: 1160px;
+  grid-template-columns: var(--library-width, 240px) 6px minmax(0, 1fr);
+  min-width: 0;
 }
 
 .flow-canvas {
@@ -2087,15 +2087,15 @@ body.tool-selected .node-condition:hover {
 
 @media (max-width: 900px) {
   .station-workspace {
-    min-width: 1160px;
-    grid-template-columns: 220px 6px minmax(900px, 1fr);
+    min-width: 760px;
+    grid-template-columns: 220px 6px minmax(0, 1fr);
   }
 }
 
 /* Video-style ladder demo: favor full visibility over compact clipping. */
 .station-workspace {
-  grid-template-columns: var(--library-width, 240px) 6px minmax(900px, 1fr);
-  min-width: 1160px;
+  grid-template-columns: var(--library-width, 240px) 6px minmax(0, 1fr);
+  min-width: 0;
 }
 
 .flow-canvas {
@@ -2328,8 +2328,8 @@ body.tool-selected .node-condition:hover {
 
 @media (max-width: 900px) {
   .station-workspace {
-    min-width: 1160px;
-    grid-template-columns: 220px 6px minmax(900px, 1fr);
+    min-width: 760px;
+    grid-template-columns: 220px 6px minmax(0, 1fr);
   }
 }
 
@@ -2662,7 +2662,7 @@ body.tool-selected .node-condition:hover {
 .workspace {
   position: relative;
   height: calc(100vh - 64px);
-  grid-template-columns: minmax(360px, 1fr) 6px var(--code-width, 360px);
+  grid-template-columns: minmax(0, 1fr) 6px minmax(280px, var(--code-width, 360px));
   gap: 4px;
   padding: 8px;
   overflow: hidden;
@@ -2677,7 +2677,7 @@ body.code-hidden .code-panel {
 }
 
 body.program-hidden .workspace {
-  grid-template-columns: minmax(360px, 1fr) 6px var(--code-width, 360px);
+  grid-template-columns: minmax(0, 1fr) 6px minmax(280px, var(--code-width, 360px));
 }
 
 body.station-hidden .station-scroller,
@@ -2709,7 +2709,7 @@ body.code-hidden .workspace-resizer {
   min-width: 0;
   min-height: 520px;
   display: grid;
-  grid-template-columns: var(--library-width, 240px) 6px minmax(360px, 1fr);
+  grid-template-columns: var(--library-width, 240px) 6px minmax(0, 1fr);
   gap: 4px;
   padding: 0;
 }
@@ -2722,7 +2722,7 @@ body.program-hidden .station-resizer {
 }
 
 body.variable-hidden .station-workspace {
-  grid-template-columns: minmax(900px, 1fr);
+  grid-template-columns: minmax(0, 1fr);
 }
 
 body.program-hidden .station-workspace {
@@ -2877,7 +2877,7 @@ body.program-hidden .station-workspace {
 
 .empty-canvas {
   min-height: 160px;
-  height: calc(100vh - 150px);
+  height: 240px;
   border-radius: 7px;
 }
 
@@ -3926,12 +3926,12 @@ body.program-hidden .station-workspace {
 
 /* EOF ladder visibility overrides. */
 .station-workspace {
-  grid-template-columns: var(--library-width, 240px) 6px minmax(900px, 1fr);
-  min-width: 1160px;
+  grid-template-columns: var(--library-width, 240px) 6px minmax(0, 1fr);
+  min-width: 0;
 }
 
 body.variable-hidden .station-workspace {
-  grid-template-columns: minmax(900px, 1fr);
+  grid-template-columns: minmax(0, 1fr);
 }
 
 body.program-hidden .station-workspace {
@@ -4000,12 +4000,12 @@ body.program-hidden .station-workspace {
 
 @media (max-width: 900px) {
   .station-workspace {
-    min-width: 1160px;
-    grid-template-columns: 220px 6px minmax(900px, 1fr);
+    min-width: 760px;
+    grid-template-columns: 220px 6px minmax(0, 1fr);
   }
 
   body.variable-hidden .station-workspace {
-    grid-template-columns: minmax(900px, 1fr);
+    grid-template-columns: minmax(0, 1fr);
   }
 
   body.program-hidden .station-workspace {
