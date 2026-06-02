@@ -592,8 +592,9 @@ function renderLibraryGroup(stationId, title, kind, items, addable = false) {
 
 function renderLibraryItem(stationId, kind, item) {
   const className = kind === "actuator" ? item.type : kind;
+  const itemKey = getLibraryItemKey(kind, item);
   return `
-    <div class="library-item ${className}" data-station-id="${stationId}" data-kind="${kind}" data-id="${item.id}">
+    <div class="library-item ${className}" data-station-id="${stationId}" data-kind="${kind}" data-id="${escapeHtml(itemKey)}">
       <span class="library-item-text">${renderLibraryItemText(stationId, kind, item)}</span>
       <span class="library-edit-buttons">
         <button class="library-rename" data-library-rename title="修改名称">名</button>
@@ -609,9 +610,10 @@ function renderLibraryItemText(stationId, kind, item) {
   const typeText = getLibraryTypeText(kind, item);
   const targetText = kind === "actuator" ? getTargetText(item) : "";
   const meta = getLibraryMetaText(kind, item);
-  const editingName = isEditingLibraryField(stationId, kind, item.id, "name");
-  const editingComment = isEditingLibraryField(stationId, kind, item.id, "comment");
-  const editingType = isEditingLibraryField(stationId, kind, item.id, "type");
+  const itemKey = getLibraryItemKey(kind, item);
+  const editingName = isEditingLibraryField(stationId, kind, itemKey, "name");
+  const editingComment = isEditingLibraryField(stationId, kind, itemKey, "comment");
+  const editingType = isEditingLibraryField(stationId, kind, itemKey, "type");
   const editingTargets = false;
   return `
     ${
@@ -2209,7 +2211,7 @@ function saveLibraryInput(input, options = {}) {
   const value = input.value.trim();
   if (!value && ["name", "type", "targets"].includes(editingLibraryItem.field)) return;
   const savedField = editingLibraryItem.field;
-  const direct = getMutableLibraryCollection(stationId, kind).find((candidate) => candidate.id === id);
+  const direct = getMutableLibraryCollection(stationId, kind).find((candidate) => getLibraryItemKey(kind, candidate) === id || candidate.id === id);
   if (editingLibraryItem.field === "comment") {
     if (direct) {
       direct.comment = value;
@@ -3878,9 +3880,6 @@ function compileLadderStep(ladder, step, work, stepIndex) {
     if (["NO", "NC", "RISING", "FALLING"].includes(cell.value) && !cell.binding) {
       issues.push(`${stepName}: R${cell.row + 1}C${cell.col + 1} 触点未绑定变量`);
     }
-    if (cell.value === "coil" && !hasRowLogicBefore(ladder, cell.row, cell.col)) {
-      issues.push(`${stepName}: R${cell.row + 1}C${cell.col + 1} 线圈左侧没有有效逻辑`);
-    }
     if (cell.value === "coil" && hasSignalAfter(ladder, cell.row, cell.col)) {
       issues.push(`${stepName}: R${cell.row + 1}C${cell.col + 1} 线圈不是分支最后一个输出`);
     }
@@ -3962,13 +3961,81 @@ function getStepCoilCount(step) {
 }
 
 function compileCoilExpression(ladder, coil) {
-  const rows = getRowsConnectedToCoil(ladder, coil);
-  const expressions = [...rows]
-    .sort((a, b) => a - b)
-    .map((row) => compileParallelRowExpressionBefore(ladder, row, coil))
-    .filter(Boolean)
-    .map((expr) => `(${expr})`);
-  return expressions.join(" OR ");
+  const graph = buildLadderLogicGraph(ladder, coil.col);
+  const target = ladderNodeKey(coil.row, coil.col);
+  const starts = Array.from({ length: ladder.rows }, (_, row) => ladderNodeKey(row, 0));
+  const expressions = new Set();
+  starts.forEach((start) => {
+    collectLadderPaths(graph, start, target).forEach((terms) => {
+      const expression = terms.length ? terms.map((term) => `(${term})`).join(" AND ") : "TRUE";
+      expressions.add(expression);
+    });
+  });
+  return [...expressions].map((expr) => `(${expr})`).join(" OR ");
+}
+
+function buildLadderLogicGraph(ladder, beforeCol) {
+  const graph = new Map();
+  const addEdge = (from, to, term = "") => {
+    if (!graph.has(from)) graph.set(from, []);
+    graph.get(from).push({ to, term });
+  };
+  const addWire = (from, to, term = "") => {
+    addEdge(from, to, term);
+    addEdge(to, from, term);
+  };
+  ladder.cells.forEach((cell) => {
+    normalizeCellSegments(cell);
+    if (cell.col < beforeCol && ["NO", "NC", "RISING", "FALLING"].includes(cell.value)) {
+      addEdge(ladderNodeKey(cell.row, cell.col), ladderNodeKey(cell.row, cell.col + 1), conditionLogicTerm(cell));
+    }
+    if (cell.col < beforeCol && cell.value === "wire") {
+      addWire(ladderNodeKey(cell.row, cell.col), ladderNodeKey(cell.row, cell.col + 1));
+    }
+    addVerticalLogicEdges(cell, addWire);
+  });
+  return graph;
+}
+
+function addVerticalLogicEdges(cell, addWire) {
+  const sides = [
+    ["left", cell.col],
+    ["right", cell.col + 1]
+  ];
+  sides.forEach(([side, boundary]) => {
+    if (getCellEdgeSegment(cell, side, "top")) {
+      addWire(ladderNodeKey(cell.row, boundary), ladderNodeKey(cell.row - 1, boundary));
+    }
+    if (getCellEdgeSegment(cell, side, "bottom")) {
+      addWire(ladderNodeKey(cell.row, boundary), ladderNodeKey(cell.row + 1, boundary));
+    }
+  });
+}
+
+function collectLadderPaths(graph, start, target) {
+  const results = [];
+  const visit = (node, terms, visited) => {
+    if (node === target) {
+      results.push(terms);
+      return;
+    }
+    if (visited.has(node)) return;
+    const nextVisited = new Set(visited);
+    nextVisited.add(node);
+    (graph.get(node) || []).forEach((edge) => {
+      visit(edge.to, edge.term ? [...terms, edge.term] : terms, nextVisited);
+    });
+  };
+  visit(start, [], new Set());
+  return results;
+}
+
+function ladderNodeKey(row, boundary) {
+  return `${row}:${boundary}`;
+}
+
+function conditionLogicTerm(condition) {
+  return toLogicExpression([condition]) || "FALSE";
 }
 
 function compileRowExpressionBefore(ladder, row, beforeCol) {
@@ -5110,7 +5177,7 @@ function getLibraryItems(stationId, kind) {
 }
 
 function applyLibraryName(stationId, kind, item) {
-  const key = `${kind}:${item.id}`;
+  const key = `${kind}:${getLibraryItemKey(kind, item)}`;
   const work = getWork(stationId);
   const name = kind === "global" ? state.globalNames?.[key] : work.itemNames?.[key];
   const comment = kind === "global" ? state.globalComments?.[key] : work.itemComments?.[key];
@@ -5163,6 +5230,12 @@ function createLibraryItemTemplate(kind, index) {
     valueType: "BOOL",
     scope: kind
   };
+}
+
+function getLibraryItemKey(kind, item) {
+  if (!item) return "";
+  if (kind === "sensor") return item.name || item.id || "";
+  return item.id || item.name || "";
 }
 
 function isVariableKind(kind) {
@@ -5298,14 +5371,15 @@ function saveLibraryOverride(stationId, kind, id, field, value, direct) {
 function bindConditionToSource(condition, kind, item) {
   const points = getConditionPoints(kind, item);
   const defaultPoint = points.find((point) => point.isDefault) || points[0];
+  const itemKey = getLibraryItemKey(kind, item);
   condition.kind = "contact";
   condition.binding = {
     kind,
-    id: item.id,
+    id: itemKey,
     name: item.name
   };
   condition.name = item.name;
-  condition.sourceId = item.id;
+  condition.sourceId = itemKey;
   condition.sourceKind = kind;
   condition.valueType = item.valueType || item.type || defaultPoint?.valueType || "BOOL";
   condition.points = points;
@@ -5448,7 +5522,11 @@ function formatCompareValue(condition) {
 }
 
 function findLibraryItem(stationId, kind, id) {
-  return getLibraryItems(stationId, kind).find((item) => item.id === id);
+  return getLibraryItems(stationId, kind).find((item) =>
+    getLibraryItemKey(kind, item) === id ||
+    item.id === id ||
+    item.name === id
+  );
 }
 
 function findDevice(deviceId) {

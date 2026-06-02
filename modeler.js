@@ -394,7 +394,7 @@ function getModelerColumnsForCollection(collection) {
     stations: [["id", "站ID", "text"], ["name", "站名称", "text"]],
     actuatorClasses: [["id", "类ID", "text"], ["name", "类名称", "text"], ["defaultTargets", "默认目标列表", "text"], ["structTemplate", "结构体内容", "text"], ["executeTemplate", "执行范例", "text"], ["doneTemplate", "完成判断范例", "text"]],
     actuatorInstances: [["stationId", "所属站", "station"], ["classId", "执行器类", "class"], ["id", "实例ID", "text"], ["name", "实例名", "text"], ["targets", "目标列表", "text"], ["executeTemplate", "执行范例覆盖", "text"], ["doneTemplate", "完成判断覆盖", "text"]],
-    sensors: [["stationId", "所属站", "station"], ["id", "变量ID", "text"], ["name", "名称", "text"], ["type", "类型", "type"], ["address", "地址", "text"], ["expression", "表达式", "text"], ["comment", "备注", "text"]],
+    sensors: [["stationId", "所属站", "station"], ["name", "变量名", "text"], ["type", "类型", "type"], ["address", "地址", "text"], ["expression", "表达式", "text"], ["comment", "备注", "text"]],
     timers: [["stationId", "所属站", "station"], ["id", "定时器ID", "text"], ["name", "名称", "text"], ["defaultMs", "默认时间ms", "number"]],
     systemVariables: [["id", "变量ID", "text"], ["name", "名称", "text"], ["type", "类型", "type"], ["address", "地址", "text"], ["expression", "表达式", "text"], ["comment", "备注", "text"]],
     localVariables: [["stationId", "所属站", "station"], ["id", "变量ID", "text"], ["name", "名称", "text"], ["type", "类型", "type"], ["address", "地址", "text"], ["expression", "表达式", "text"], ["comment", "备注", "text"]],
@@ -496,7 +496,7 @@ function validateModelerModel() {
     if (!splitTargets(item.targets).length) errors.push(`执行器实例第 ${index + 1} 行: 目标列表不能为空。`);
   });
 
-  validateEntityRows(errors, modelerState.sensors, "传感器", true, false);
+  validateEntityRows(errors, modelerState.sensors, "传感器", true, false, { useNameAsId: true });
   validateEntityRows(errors, modelerState.timers, "定时器", true, false);
   validateEntityRows(errors, modelerState.systemVariables, "系统变量", false, false);
   validateEntityRows(errors, modelerState.localVariables, "局部变量", true, false);
@@ -517,18 +517,20 @@ function validateUniqueRows(errors, rows, label, field, fieldLabel) {
   });
 }
 
-function validateEntityRows(errors, rows, label, needsStation, needsClass) {
+function validateEntityRows(errors, rows, label, needsStation, needsClass, options = {}) {
   const idSeen = new Set();
   const nameSeen = new Set();
   rows.forEach((row, index) => {
     const prefix = `${label}第 ${index + 1} 行`;
+    const idValue = options.useNameAsId ? row.name : row.id;
+    const idLabel = options.useNameAsId ? "名称" : "ID";
     if (needsStation && !modelerState.stations.some((station) => station.id === row.stationId)) errors.push(`${prefix}: 所属站不存在。`);
     if (needsClass && !row.classId) errors.push(`${prefix}: 执行器类不能为空。`);
-    if (!row.id) errors.push(`${prefix}: ID不能为空。`);
+    if (!idValue) errors.push(`${prefix}: ${idLabel}不能为空。`);
     if (!row.name) errors.push(`${prefix}: 名称不能为空。`);
-    const scope = `${row.stationId || "GLOBAL"}:${row.id}`;
+    const scope = `${row.stationId || "GLOBAL"}:${idValue}`;
     const nameScope = `${row.stationId || "GLOBAL"}:${row.name}`;
-    if (idSeen.has(scope)) errors.push(`${prefix}: ID重复 (${row.id})。`);
+    if (idSeen.has(scope)) errors.push(`${prefix}: ${idLabel}重复 (${idValue})。`);
     if (nameSeen.has(nameScope)) errors.push(`${prefix}: 名称重复 (${row.name})。`);
     idSeen.add(scope);
     nameSeen.add(nameScope);
@@ -579,7 +581,7 @@ function buildProjectFromModeler() {
         .map(toProjectActuator),
       sensors: modelerState.sensors
         .filter((item) => item.stationId === station.id)
-        .map(toProjectVariable)
+        .map(toProjectSensorVariable)
     }))
   };
   replaceProjectData(nextProjectData);
@@ -600,13 +602,20 @@ function buildProjectFromModeler() {
 
 function toProjectVariable(item) {
   return {
-    id: item.id,
+    id: item.id || item.name,
     name: item.name,
     type: item.type,
     valueType: item.type,
     address: item.address,
     expression: item.expression || normalizeName(item.name),
     comment: item.comment
+  };
+}
+
+function toProjectSensorVariable(item) {
+  return {
+    ...toProjectVariable(item),
+    id: item.name
   };
 }
 
@@ -656,7 +665,7 @@ function exportModelerExcel() {
     ["站", [["站ID", "站名称"], ...modelerState.stations.map((row) => [row.id, row.name])]],
     ["执行器类", [["类ID", "类名称", "结构体内容", "执行范例", "完成判断范例", "默认目标列表"], ...modelerState.actuatorClasses.map((row) => [row.id, row.name, row.structTemplate, row.executeTemplate, row.doneTemplate, row.defaultTargets])]],
     ["执行器实例", [["所属站", "执行器类", "实例ID", "实例名", "目标列表", "执行范例覆盖", "完成判断覆盖"], ...modelerState.actuatorInstances.map((row) => [row.stationId, row.classId, row.id, row.name, row.targets, row.executeTemplate, row.doneTemplate])]],
-    ["传感器", variableSheetRows(modelerState.sensors, true)],
+    ["传感器", sensorSheetRows(modelerState.sensors)],
     ["定时器", [["所属站", "定时器ID", "名称", "默认时间ms"], ...modelerState.timers.map((row) => [row.stationId, row.id, row.name, row.defaultMs])]],
     ["系统变量", variableSheetRows(modelerState.systemVariables, false)],
     ["局部变量", variableSheetRows(modelerState.localVariables, true)],
@@ -673,4 +682,9 @@ function exportModelerExcel() {
 function variableSheetRows(rows, withStation) {
   const header = [...(withStation ? ["所属站"] : []), "变量ID", "名称", "类型", "地址", "表达式", "备注"];
   return [header, ...rows.map((row) => [...(withStation ? [row.stationId] : []), row.id, row.name, row.type, row.address, row.expression, row.comment])];
+}
+
+function sensorSheetRows(rows) {
+  const header = ["所属站", "变量名", "类型", "地址", "表达式", "备注"];
+  return [header, ...rows.map((row) => [row.stationId, row.name, row.type, row.address, row.expression, row.comment])];
 }

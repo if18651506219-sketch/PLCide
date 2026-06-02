@@ -148,17 +148,18 @@ function getVariableExportRows() {
 }
 
 function formatVariableExcelRow(station, kind, item) {
+  const itemKey = getLibraryItemKey(kind, item);
   return {
     "工站ID": station.id,
     "工站名称": station.name,
     "类别": kind,
-    "变量ID": item.id || "",
+    "变量ID": kind === "sensor" ? "" : (item.id || ""),
     "名称": item.name || "",
     "类型": getLibraryTypeText(kind, item),
     "地址/注释": kind === "actuator" ? "" : (item.comment || item.address || ""),
     "表达式": item.expression || "",
     "目标列表": kind === "actuator" ? getActionLabels(item).join("，") : "",
-    "来源": getVariableSource(station.id, kind, item.id)
+    "来源": getVariableSource(station.id, kind, itemKey)
   };
 }
 
@@ -294,12 +295,13 @@ function importVariableRows(rows) {
 function normalizeVariableRow(row) {
   const kind = normalizeVariableKind(row.kind);
   const station = kind === "global" ? projectData.stations[0] : findStationForImport(row.stationId, row.stationName);
-  const id = String(row.id || "").trim() || makeImportedVariableId(kind, row.name);
+  const name = String(row.name || "").trim();
+  const id = kind === "sensor" ? name : (String(row.id || "").trim() || makeImportedVariableId(kind, name));
   return {
     stationId: station.id,
     kind,
     id,
-    name: String(row.name || "").trim(),
+    name,
     type: String(row.type || "").trim(),
     meta: String(row.meta || "").trim(),
     expression: String(row.expression || "").trim(),
@@ -339,8 +341,10 @@ function makeImportedVariableId(kind, name) {
 function upsertVariableFromImport(row) {
   const stationId = row.stationId;
   const kind = row.kind;
-  const direct = getMutableLibraryCollection(stationId, kind).find((item) => item.id === row.id);
-  const existing = findLibraryItem(stationId, kind, row.id);
+  if (kind === "sensor" && !row.id) row.id = row.name;
+  const rowKey = kind === "sensor" ? row.name : row.id;
+  const direct = getMutableLibraryCollection(stationId, kind).find((item) => getLibraryItemKey(kind, item) === rowKey || item.id === row.id);
+  const existing = findLibraryItem(stationId, kind, rowKey);
   const target = existing ? direct : createImportedLibraryItem(row);
   if (!existing && target) getMutableLibraryCollection(stationId, kind).push(target);
   applyImportedVariableFields(stationId, kind, row, target);
@@ -367,7 +371,7 @@ function createImportedLibraryItem(row) {
   }
   const type = row.type || "BOOL";
   return {
-    id: row.id,
+    id: row.kind === "sensor" ? row.name : row.id,
     name: row.name,
     address: row.meta,
     comment: row.meta,
@@ -386,11 +390,12 @@ function applyImportedVariableFields(stationId, kind, row, direct) {
       direct.address = row.meta;
     }
     if (row.expression) direct.expression = row.expression;
-    if (row.type && kind !== "delay") saveLibraryOverride(stationId, kind, row.id, "type", row.type, direct);
+    const rowKey = kind === "sensor" ? row.name : row.id;
+    if (row.type && kind !== "delay") saveLibraryOverride(stationId, kind, rowKey, "type", row.type, direct);
     if (kind === "actuator" && row.targets.length) saveLibraryOverride(stationId, kind, row.id, "targets", row.targets, direct);
     return;
   }
-  const key = `${kind}:${row.id}`;
+  const key = `${kind}:${kind === "sensor" ? row.name : row.id}`;
   const work = getWork(stationId);
   if (kind === "global") {
     state.globalNames[key] = row.name;
