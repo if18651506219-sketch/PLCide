@@ -55,8 +55,8 @@
             <button id="toggleProgramBtn" class="secondary tool-button view-tool" title="显示或隐藏程序流" aria-label="显示或隐藏程序流" aria-pressed="true"><svg class="tool-svg"><use href="#i-flow"></use></svg><span>程序</span></button>
             <button id="toggleCodeBtn" class="secondary tool-button view-tool" title="显示或隐藏代码预览" aria-label="显示或隐藏代码预览" aria-pressed="true"><svg class="tool-svg"><use href="#i-code"></use></svg><span>代码</span></button>
           </div>
-          <details class="toolbar-menu">
-            <summary title="更多操作" aria-label="更多操作"><svg class="tool-svg"><use href="#i-more"></use></svg><span>更多</span></summary>
+          <details class="toolbar-menu" id="toolbarMenu">
+            <summary title="更多操作" aria-label="更多操作" aria-expanded="false"><svg class="tool-svg"><use href="#i-more"></use></svg><span>更多</span></summary>
             <div class="toolbar-menu-panel">
               <div class="menu-section-title">项目</div>
               <button id="newProjectBtn" class="menu-item" title="新建项目"><svg class="tool-svg"><use href="#i-plus"></use></svg><span>新建项目</span></button>
@@ -125,7 +125,7 @@
     <div id="modelerModal" class="modal-backdrop" hidden></div>
     <script src="data.js?v=split-1"></script>
     <script src="utils.js?v=split-1"></script>
-    <script src="app.js?v=flow-sync-2"></script>
+    <script src="app.js?v=toolbar-menu-1"></script>
     <script src="codegen.js?v=split-1"></script>
     <script src="project-io.js?v=split-1"></script>
     <script src="modeler.js?v=modeler-1"></script>

@@ -74,6 +74,7 @@ function bindElements() {
   els.toggleVariableBtn = document.getElementById("toggleVariableBtn");
   els.toggleProgramBtn = document.getElementById("toggleProgramBtn");
   els.toggleCodeBtn = document.getElementById("toggleCodeBtn");
+  els.toolbarMenu = document.getElementById("toolbarMenu");
   els.clearBtn = document.getElementById("clearBtn");
   els.targetModal = document.getElementById("targetModal");
   els.targetModalTitle = document.getElementById("targetModalTitle");
@@ -102,6 +103,7 @@ function bindEvents() {
   els.exportVariablesBtn.addEventListener("click", exportVariablesExcel);
   els.projectFileInput.addEventListener("change", handleProjectFileOpen);
   els.variableExcelInput.addEventListener("change", handleVariableExcelImport);
+  bindToolbarMenuEvents();
 
   els.clearBtn.addEventListener("click", () => {
     hideConditionCellUi();
@@ -264,6 +266,36 @@ function bindEvents() {
       event.preventDefault();
     }
   });
+}
+
+function bindToolbarMenuEvents() {
+  if (!els.toolbarMenu) return;
+  const summary = els.toolbarMenu.querySelector("summary");
+  els.toolbarMenu.addEventListener("toggle", () => {
+    summary?.setAttribute("aria-expanded", els.toolbarMenu.open ? "true" : "false");
+  });
+  els.toolbarMenu.addEventListener("click", (event) => {
+    if (event.target.closest(".menu-item")) {
+      closeToolbarMenu();
+    }
+  });
+  document.addEventListener("pointerdown", (event) => {
+    if (!els.toolbarMenu.open) return;
+    if (event.composedPath().includes(els.toolbarMenu)) return;
+    closeToolbarMenu();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || !els.toolbarMenu.open) return;
+    closeToolbarMenu();
+    summary?.focus();
+    event.preventDefault();
+  });
+}
+
+function closeToolbarMenu() {
+  if (!els.toolbarMenu?.open) return;
+  els.toolbarMenu.open = false;
+  els.toolbarMenu.querySelector("summary")?.setAttribute("aria-expanded", "false");
 }
 
 function handleStationInput(event) {
