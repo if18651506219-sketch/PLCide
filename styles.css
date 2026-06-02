@@ -80,11 +80,11 @@ button {
   height: 46px;
   display: grid;
   place-items: center;
-  border-radius: 11px;
-  background: rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
   box-shadow:
-    0 10px 24px rgba(0, 0, 0, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    0 12px 28px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
   overflow: hidden;
 }
 
@@ -94,30 +94,32 @@ button {
   display: block;
 }
 
-.mark-grid {
+.mark-bg {
+  stroke: rgba(255, 255, 255, 0.14);
+  stroke-width: 1;
+}
+
+.mark-flow,
+.mark-tail {
   fill: none;
-  stroke: rgba(6, 26, 31, 0.72);
-  stroke-width: 2.4;
+  stroke: url(#brandMarkStroke);
+  stroke-width: 4;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-.mark-bolt {
-  fill: rgba(255, 255, 255, 0.94);
-  stroke: rgba(9, 38, 48, 0.28);
-  stroke-width: 1;
-  stroke-linejoin: round;
-}
-
-.mark-ai {
+.mark-spark {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.95);
+  stroke: #ffffff;
   stroke-width: 2;
   stroke-linecap: round;
+  opacity: 0.9;
 }
 
-.mark-dot {
-  fill: rgba(6, 26, 31, 0.72);
+.mark-node {
+  fill: #f8fffb;
+  stroke: rgba(88, 225, 190, 0.56);
+  stroke-width: 1.5;
 }
 
 h1,
@@ -2423,7 +2425,7 @@ body.tool-selected .node-condition:hover {
 .mark {
   width: 38px;
   height: 38px;
-  border-radius: 9px;
+  border-radius: 10px;
 }
 
 .brand {
