@@ -2459,13 +2459,43 @@ body.tool-selected .node-condition:hover {
   transform: translateY(1px);
 }
 
-.toolbar button.primary-tool {
-  background: #eaf4ff;
-  color: #174e84;
-  border-color: rgba(234, 244, 255, 0.9);
+.toolbar button.command-tool {
+  color: #eaf3fb;
 }
 
-.toolbar button.primary-tool:hover {
+.toolbar button.command-tool:hover {
+  background: rgba(255, 255, 255, 0.13);
+  color: #ffffff;
+}
+
+.view-toolbar-group {
+  padding: 4px;
+  gap: 4px;
+}
+
+.toolbar button.view-tool {
+  min-width: 66px;
+  color: #b9c9d8;
+}
+
+.toolbar button.view-tool.is-on {
+  background: #eaf4ff;
+  color: #174e84;
+  border-color: rgba(234, 244, 255, 0.92);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.65) inset,
+    0 6px 14px rgba(11, 31, 50, 0.16);
+}
+
+.toolbar button.view-tool:not(.is-on) {
+  opacity: 0.72;
+}
+
+.toolbar button.view-tool:not(.is-on) .tool-svg {
+  opacity: 0.65;
+}
+
+.toolbar button.view-tool.is-on:hover {
   background: #ffffff;
   color: #0f3d6f;
 }

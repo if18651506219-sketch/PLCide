@@ -39,14 +39,14 @@
         </div>
         <div class="toolbar" aria-label="主工具栏">
           <div class="toolbar-group" aria-label="建模与编译">
-            <button id="compileBtn" class="secondary tool-button primary-tool" title="编译" aria-label="编译"><svg class="tool-svg"><use href="#i-play"></use></svg><span>编译</span></button>
+            <button id="compileBtn" class="secondary tool-button command-tool" title="编译" aria-label="编译"><svg class="tool-svg"><use href="#i-play"></use></svg><span>编译</span></button>
             <button id="tidyBtn" class="secondary tool-button" title="整理画布" aria-label="整理画布"><svg class="tool-svg"><use href="#i-layout"></use></svg><span>整理</span></button>
             <button id="modelerBtn" class="secondary tool-button wide" title="参数建模" aria-label="参数建模"><svg class="tool-svg"><use href="#i-table"></use></svg><span>参数</span></button>
           </div>
-          <div class="toolbar-group" aria-label="视图">
-            <button id="toggleVariableBtn" class="secondary tool-button" title="显示或隐藏变量区" aria-label="显示或隐藏变量区"><svg class="tool-svg"><use href="#i-sidebar"></use></svg><span>变量</span></button>
-            <button id="toggleProgramBtn" class="secondary tool-button" title="显示或隐藏程序流" aria-label="显示或隐藏程序流"><svg class="tool-svg"><use href="#i-flow"></use></svg><span>程序</span></button>
-            <button id="toggleCodeBtn" class="secondary tool-button" title="显示或隐藏代码预览" aria-label="显示或隐藏代码预览"><svg class="tool-svg"><use href="#i-code"></use></svg><span>代码</span></button>
+          <div class="toolbar-group view-toolbar-group" aria-label="视图">
+            <button id="toggleVariableBtn" class="secondary tool-button view-tool" title="显示或隐藏变量区" aria-label="显示或隐藏变量区" aria-pressed="true"><svg class="tool-svg"><use href="#i-sidebar"></use></svg><span>变量</span></button>
+            <button id="toggleProgramBtn" class="secondary tool-button view-tool" title="显示或隐藏程序流" aria-label="显示或隐藏程序流" aria-pressed="true"><svg class="tool-svg"><use href="#i-flow"></use></svg><span>程序</span></button>
+            <button id="toggleCodeBtn" class="secondary tool-button view-tool" title="显示或隐藏代码预览" aria-label="显示或隐藏代码预览" aria-pressed="true"><svg class="tool-svg"><use href="#i-code"></use></svg><span>代码</span></button>
           </div>
           <details class="toolbar-menu">
             <summary title="更多操作" aria-label="更多操作"><svg class="tool-svg"><use href="#i-more"></use></svg><span>更多</span></summary>

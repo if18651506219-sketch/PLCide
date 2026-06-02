@@ -4128,6 +4128,9 @@ function renderCodePreview() {
   els.toggleVariableBtn.classList.toggle("is-on", state.variableVisible);
   els.toggleProgramBtn.classList.toggle("is-on", state.programVisible);
   els.toggleCodeBtn.classList.toggle("is-on", state.codeVisible);
+  els.toggleVariableBtn.setAttribute("aria-pressed", state.variableVisible ? "true" : "false");
+  els.toggleProgramBtn.setAttribute("aria-pressed", state.programVisible ? "true" : "false");
+  els.toggleCodeBtn.setAttribute("aria-pressed", state.codeVisible ? "true" : "false");
   if (els.codeStationSelect) {
     const options = renderStationOptions(station.id);
     if (els.codeStationSelect.innerHTML !== options) els.codeStationSelect.innerHTML = options;
