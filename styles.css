@@ -4694,6 +4694,173 @@ body.program-hidden .station-workspace {
   color: #a62a2a;
 }
 
+/* Parameter modeler refinement: table-first editing, fewer heavy buttons. */
+.modeler-modal {
+  width: min(1240px, calc(100vw - 28px));
+  height: min(820px, calc(100dvh - 28px));
+  border-radius: 10px;
+}
+
+.modeler-head,
+.modeler-foot {
+  padding: 10px 12px;
+}
+
+.modeler-head {
+  background: #fbfdff;
+}
+
+.modeler-head h2 {
+  font-size: 14px;
+}
+
+.modeler-head p {
+  margin-top: 2px;
+  color: #7a8998;
+}
+
+.modeler-close {
+  width: 30px;
+  height: 30px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #d8e4ef;
+  border-radius: 8px;
+  background: #fff;
+  color: #536476;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.modeler-body {
+  grid-template-columns: 150px minmax(0, 1fr);
+}
+
+.modeler-nav {
+  padding: 8px;
+  background: #f9fbfd;
+}
+
+.modeler-nav button {
+  height: 30px;
+  margin-bottom: 3px;
+  padding: 0 9px;
+  border-radius: 7px;
+  color: #536476;
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.modeler-nav button.is-active {
+  border-color: #c5dbef;
+  background: #eef7ff;
+  color: #174f8e;
+}
+
+.modeler-content {
+  padding: 10px;
+  background: #fff;
+}
+
+.modeler-section-head {
+  margin-bottom: 6px;
+}
+
+.modeler-section-head h3 {
+  font-size: 14px;
+}
+
+.modeler-table-hint {
+  margin: 0 0 7px;
+  color: #8795a4;
+  font-size: 11px;
+}
+
+.modeler-add {
+  height: 26px;
+  padding: 0 9px;
+  border: 1px solid #cfe0ef;
+  border-radius: 7px;
+  background: #f4f9ff;
+  color: #1d5f9b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.modeler-table-wrap {
+  border-color: #e0e8f0;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.modeler-table {
+  min-width: 760px;
+}
+
+.modeler-table th {
+  padding: 6px 7px;
+  background: #f7fafc;
+  color: #607184;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.modeler-edit-cell {
+  min-height: 29px;
+  padding: 6px 7px;
+  font-size: 12px;
+}
+
+.modeler-row-action-head,
+.modeler-row-action {
+  width: 34px;
+  min-width: 34px;
+  max-width: 34px;
+  text-align: center;
+}
+
+.modeler-delete {
+  width: 24px;
+  height: 24px;
+  margin: 3px;
+  padding: 0;
+  border-color: transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: #b94a4a;
+  font-size: 16px;
+  line-height: 1;
+  box-shadow: none;
+}
+
+.modeler-delete:hover {
+  background: #fff1f1;
+  border-color: #f0caca;
+  transform: none;
+}
+
+.modeler-foot {
+  min-height: 48px;
+}
+
+.modeler-foot .modeler-actions {
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.modeler-foot .modeler-actions button {
+  height: 30px;
+  padding: 0 11px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.modeler-status {
+  min-width: 0;
+  overflow: hidden;
+}
+
 .step-comment::placeholder {
   color: #92a3b2;
 }

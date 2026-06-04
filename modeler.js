@@ -12,6 +12,7 @@ const MODELER_SECTIONS = [
 
 let modelerState = null;
 let modelerActiveSection = "project";
+let modelerSyncTimer = null;
 
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("modelerBtn")?.addEventListener("click", openModeler);
@@ -24,6 +25,7 @@ function openModeler() {
 }
 
 function closeModeler() {
+  flushModelerLiveSync();
   const modal = document.getElementById("modelerModal");
   if (modal) modal.hidden = true;
 }
@@ -99,10 +101,11 @@ function createActuatorClassFromInstance(item) {
 }
 
 function normalizeModelVariable(item, stationId) {
+  const name = item.name || "";
   return {
     stationId,
-    id: item.id || uid("var"),
-    name: item.name || "",
+    id: name || item.id || uid("var"),
+    name,
     type: item.valueType || item.type || "BOOL",
     address: item.address || item.comment || "",
     expression: item.expression || normalizeName(item.name || ""),
@@ -111,10 +114,11 @@ function normalizeModelVariable(item, stationId) {
 }
 
 function normalizeModelTimer(item, stationId) {
+  const name = item.name || "定时器";
   return {
     stationId,
-    id: item.id || uid("timer"),
-    name: item.name || "定时器",
+    id: name,
+    name,
     type: "delay",
     defaultMs: Number(item.defaultMs) || 1000
   };
@@ -145,9 +149,9 @@ function renderModeler() {
       <header class="modeler-head">
         <div>
           <h2 id="modelerTitle">参数建模</h2>
-          <p>按项目结构配置参数，校验通过后导入到 IDE 项目。</p>
+          <p>参数与编程界面共用项目数据；名称就是可见主键，内部 ID 自动维护。</p>
         </div>
-        <button class="secondary small" type="button" data-modeler-close>关闭</button>
+        <button class="modeler-close" type="button" data-modeler-close aria-label="关闭">×</button>
       </header>
       <div class="modeler-body">
         <nav class="modeler-nav">
@@ -156,12 +160,10 @@ function renderModeler() {
         <main class="modeler-content">${renderModelerSection()}</main>
       </div>
       <footer class="modeler-foot">
-        <div class="modeler-status" id="modelerStatus">未校验</div>
+        <div class="modeler-status" id="modelerStatus">已连接当前 IDE 项目</div>
         <div class="modeler-actions">
-          <button class="secondary" type="button" data-modeler-validate>校验</button>
-          <button class="secondary" type="button" data-modeler-export>生成标准Excel</button>
-          <button class="secondary primary-action" type="button" data-modeler-import>导入到IDE项目</button>
-          <button class="secondary" type="button" data-modeler-close>关闭</button>
+          <button class="secondary" type="button" data-modeler-export>导出 Excel</button>
+          <button class="secondary primary-action" type="button" data-modeler-import>应用到编程界面</button>
         </div>
       </footer>
     </section>
@@ -217,14 +219,12 @@ function renderProjectSection() {
 
 function renderStationsSection() {
   return renderModelerTable("站名称", "stations", [
-    ["id", "站ID", "input"],
     ["name", "站名称", "input"]
   ]);
 }
 
 function renderClassesSection() {
   return renderModelerTable("执行器类", "actuatorClasses", [
-    ["id", "类ID", "input"],
     ["name", "类名称", "input"],
     ["defaultTargets", "默认目标列表", "textarea"],
     ["structTemplate", "结构体内容", "textarea"],
@@ -237,7 +237,6 @@ function renderInstancesSection() {
   return renderModelerTable("执行器实例", "actuatorInstances", [
     ["stationId", "所属站", "station"],
     ["classId", "执行器类", "class"],
-    ["id", "实例ID", "input"],
     ["name", "实例名", "input"],
     ["targets", "目标列表", "textarea"],
     ["executeTemplate", "执行范例覆盖", "textarea"],
@@ -248,8 +247,7 @@ function renderInstancesSection() {
 function renderVariableSection(title, collection, withStation) {
   const columns = [
     ...(withStation ? [["stationId", "所属站", "station"]] : []),
-    ["id", "变量ID", "input"],
-    ["name", "名称", "input"],
+    ["name", "变量名", "input"],
     ["type", "类型", "type"],
     ["address", "地址", "input"],
     ["expression", "表达式", "input"],
@@ -261,7 +259,6 @@ function renderVariableSection(title, collection, withStation) {
 function renderTimersSection() {
   return renderModelerTable("定时器", "timers", [
     ["stationId", "所属站", "station"],
-    ["id", "定时器ID", "input"],
     ["name", "名称", "input"],
     ["defaultMs", "默认时间ms", "number"]
   ]);
@@ -273,20 +270,20 @@ function renderModelerTable(title, collection, columns) {
     <div class="modeler-section-head">
       <h3>${escapeHtml(title)}</h3>
       <div class="modeler-actions">
-        <button class="secondary small" type="button" data-modeler-add="${collection}">添加</button>
+        <button class="modeler-add" type="button" data-modeler-add="${collection}">+ 新增一行</button>
       </div>
     </div>
-    <p class="modeler-table-hint">可从 Excel 复制多行多列后直接粘贴到任意单元格。</p>
+    <p class="modeler-table-hint">支持从 Excel 批量粘贴。站、类、变量都按名称识别，ID 由系统自动维护。</p>
     <div class="modeler-table-wrap">
       <table class="modeler-table">
         <thead>
-          <tr>${columns.map(([, label]) => `<th>${escapeHtml(label)}</th>`).join("")}<th>操作</th></tr>
+          <tr>${columns.map(([, label]) => `<th>${escapeHtml(label)}</th>`).join("")}<th class="modeler-row-action-head"></th></tr>
         </thead>
         <tbody>
           ${rows.map((row, index) => `
             <tr>
               ${columns.map(([field, , type], colIndex) => `<td class="modeler-cell">${renderModelerEditableCell(collection, index, field, type, row[field], colIndex)}</td>`).join("")}
-              <td><button class="modeler-delete" type="button" data-modeler-delete="${collection}" data-index="${index}">删除</button></td>
+              <td class="modeler-row-action"><button class="modeler-delete" type="button" data-modeler-delete="${collection}" data-index="${index}" aria-label="删除此行">×</button></td>
             </tr>
           `).join("")}
         </tbody>
@@ -298,18 +295,20 @@ function renderModelerTable(title, collection, columns) {
 
 function renderModelerEditableCell(collection, index, field, type, value, col) {
   const hint = getModelerCellHint(type);
-  return `<div class="modeler-edit-cell" contenteditable="true" spellcheck="false" data-modeler-cell data-modeler-field="${field}" data-collection="${collection}" data-index="${index}" data-col="${col}" data-type="${type}" data-hint="${escapeHtml(hint)}">${escapeHtml(formatModelerCellValue(value))}</div>`;
+  return `<div class="modeler-edit-cell" contenteditable="true" spellcheck="false" data-modeler-cell data-modeler-field="${field}" data-collection="${collection}" data-index="${index}" data-col="${col}" data-type="${type}" data-hint="${escapeHtml(hint)}">${escapeHtml(formatModelerCellValue(value, type))}</div>`;
 }
 
 function getModelerCellHint(type) {
-  if (type === "station") return "填站ID，例如 station1";
-  if (type === "class") return "填类ID，例如 cylinder";
+  if (type === "station") return "填站名称";
+  if (type === "class") return "填类名称";
   if (type === "type") return "BOOL/INT/DINT/REAL/TIME/STRING";
   if (type === "number") return "数字";
   return "";
 }
 
-function formatModelerCellValue(value) {
+function formatModelerCellValue(value, type = "") {
+  if (type === "station") return getModelerStationName(value);
+  if (type === "class") return getModelerClassName(value);
   return String(value ?? "");
 }
 
@@ -347,10 +346,13 @@ function setModelerCellValue(cell, rawValue) {
   const value = normalizeModelerCellValue(rawValue, cell.dataset.type);
   if (!collection) {
     modelerState[field] = value;
+    scheduleModelerLiveSync();
     return;
   }
   if (modelerState[collection]?.[index]) {
-    modelerState[collection][index][field] = field === "defaultMs" ? Number(value) || 0 : value;
+    modelerState[collection][index][field] = normalizeModelerFieldValue(field, value, cell.dataset.type);
+    if (field === "name") refreshHiddenModelerId(collection, index);
+    scheduleModelerLiveSync();
   }
 }
 
@@ -376,9 +378,19 @@ function pasteModelerMatrix(startCell, matrix) {
       const column = columns[startCol + colOffset];
       if (!column) return;
       const [field, , type] = column;
-      modelerState[collection][rowIndex][field] = field === "defaultMs" ? Number(value) || 0 : normalizeModelerCellValue(value, type);
+      modelerState[collection][rowIndex][field] = normalizeModelerFieldValue(field, value, type);
+      if (field === "name") refreshHiddenModelerId(collection, rowIndex);
     });
   });
+  scheduleModelerLiveSync();
+}
+
+function normalizeModelerFieldValue(field, value, type) {
+  const normalized = normalizeModelerCellValue(value, type);
+  if (field === "defaultMs") return Number(normalized) || 0;
+  if (field === "stationId") return resolveModelerStationId(normalized);
+  if (field === "classId") return resolveModelerClassId(normalized);
+  return normalized;
 }
 
 function parseClipboardMatrix(text) {
@@ -391,19 +403,61 @@ function parseClipboardMatrix(text) {
 
 function getModelerColumnsForCollection(collection) {
   return {
-    stations: [["id", "站ID", "text"], ["name", "站名称", "text"]],
-    actuatorClasses: [["id", "类ID", "text"], ["name", "类名称", "text"], ["defaultTargets", "默认目标列表", "text"], ["structTemplate", "结构体内容", "text"], ["executeTemplate", "执行范例", "text"], ["doneTemplate", "完成判断范例", "text"]],
-    actuatorInstances: [["stationId", "所属站", "station"], ["classId", "执行器类", "class"], ["id", "实例ID", "text"], ["name", "实例名", "text"], ["targets", "目标列表", "text"], ["executeTemplate", "执行范例覆盖", "text"], ["doneTemplate", "完成判断覆盖", "text"]],
+    stations: [["name", "站名称", "text"]],
+    actuatorClasses: [["name", "类名称", "text"], ["defaultTargets", "默认目标列表", "text"], ["structTemplate", "结构体内容", "text"], ["executeTemplate", "执行范例", "text"], ["doneTemplate", "完成判断范例", "text"]],
+    actuatorInstances: [["stationId", "所属站", "station"], ["classId", "执行器类", "class"], ["name", "实例名", "text"], ["targets", "目标列表", "text"], ["executeTemplate", "执行范例覆盖", "text"], ["doneTemplate", "完成判断覆盖", "text"]],
     sensors: [["stationId", "所属站", "station"], ["name", "变量名", "text"], ["type", "类型", "type"], ["address", "地址", "text"], ["expression", "表达式", "text"], ["comment", "备注", "text"]],
-    timers: [["stationId", "所属站", "station"], ["id", "定时器ID", "text"], ["name", "名称", "text"], ["defaultMs", "默认时间ms", "number"]],
-    systemVariables: [["id", "变量ID", "text"], ["name", "名称", "text"], ["type", "类型", "type"], ["address", "地址", "text"], ["expression", "表达式", "text"], ["comment", "备注", "text"]],
-    localVariables: [["stationId", "所属站", "station"], ["id", "变量ID", "text"], ["name", "名称", "text"], ["type", "类型", "type"], ["address", "地址", "text"], ["expression", "表达式", "text"], ["comment", "备注", "text"]],
-    globalVariables: [["id", "变量ID", "text"], ["name", "名称", "text"], ["type", "类型", "type"], ["address", "地址", "text"], ["expression", "表达式", "text"], ["comment", "备注", "text"]]
+    timers: [["stationId", "所属站", "station"], ["name", "名称", "text"], ["defaultMs", "默认时间ms", "number"]],
+    systemVariables: [["name", "变量名", "text"], ["type", "类型", "type"], ["address", "地址", "text"], ["expression", "表达式", "text"], ["comment", "备注", "text"]],
+    localVariables: [["stationId", "所属站", "station"], ["name", "变量名", "text"], ["type", "类型", "type"], ["address", "地址", "text"], ["expression", "表达式", "text"], ["comment", "备注", "text"]],
+    globalVariables: [["name", "变量名", "text"], ["type", "类型", "type"], ["address", "地址", "text"], ["expression", "表达式", "text"], ["comment", "备注", "text"]]
   }[collection] || [];
 }
 
 function ensureModelerRows(collection, count) {
   while (modelerState[collection].length < count) addModelerRowData(collection);
+}
+
+function getModelerStationName(stationId) {
+  return modelerState?.stations.find((station) => station.id === stationId)?.name || stationId || "";
+}
+
+function getModelerClassName(classId) {
+  return modelerState?.actuatorClasses.find((klass) => klass.id === classId)?.name || classId || "";
+}
+
+function resolveModelerStationId(value) {
+  const text = String(value || "").trim();
+  const station = modelerState.stations.find((item) => item.name === text || item.id === text);
+  return station?.id || text;
+}
+
+function resolveModelerClassId(value) {
+  const text = String(value || "").trim();
+  const klass = modelerState.actuatorClasses.find((item) => item.name === text || item.id === text);
+  return klass?.id || text;
+}
+
+function makeModelerInternalId(name, fallback) {
+  return normalizeName(name) || fallback;
+}
+
+function refreshHiddenModelerId(collection, index) {
+  const row = modelerState[collection]?.[index];
+  if (!row?.name) return;
+  if (collection === "actuatorClasses") {
+    const previousId = row.id;
+    row.id = makeModelerInternalId(row.name, previousId || `custom${index + 1}`);
+    if (previousId && previousId !== row.id) {
+      modelerState.actuatorInstances.forEach((item) => {
+        if (item.classId === previousId) item.classId = row.id;
+      });
+    }
+    return;
+  }
+  if (collection === "actuatorInstances" || collection === "timers" || collection.endsWith("Variables") || collection === "sensors") {
+    row.id = row.name;
+  }
 }
 
 function addModelerRowData(collection) {
@@ -415,9 +469,10 @@ function addModelerRowData(collection) {
     return;
   }
   if (collection === "actuatorClasses") {
+    const name = "自定义执行器";
     modelerState.actuatorClasses.push({
-      id: `custom${modelerState.actuatorClasses.length + 1}`,
-      name: "自定义执行器",
+      id: makeModelerInternalId(name, `custom${modelerState.actuatorClasses.length + 1}`),
+      name,
       defaultTargets: "动作1，动作2",
       structTemplate: "REQ : BOOL\nDONE : BOOL",
       executeTemplate: "{实例名}.{目标名} := TRUE",
@@ -431,7 +486,7 @@ function addModelerRowData(collection) {
     modelerState.actuatorInstances.push({
       stationId,
       classId: klass.id,
-      id: `actuator_${uid("item")}`,
+      id: "新执行器",
       name: "新执行器",
       targets: klass.defaultTargets,
       executeTemplate: "",
@@ -440,12 +495,12 @@ function addModelerRowData(collection) {
     return;
   }
   if (collection === "timers") {
-    modelerState.timers.push({ stationId: modelerState.stations[0]?.id || "", id: `timer_${uid("item")}`, name: "新定时器", defaultMs: 1000 });
+    modelerState.timers.push({ stationId: modelerState.stations[0]?.id || "", id: "新定时器", name: "新定时器", defaultMs: 1000 });
     return;
   }
   modelerState[collection].push({
     stationId: collection === "systemVariables" || collection === "globalVariables" ? "" : (modelerState.stations[0]?.id || ""),
-    id: `var_${uid("item")}`,
+    id: "新变量",
     name: "新变量",
     type: "BOOL",
     address: "",
@@ -467,24 +522,25 @@ function moveModelerFocus(cell, rowDelta, colDelta) {
 
 function addModelerRow(collection) {
   addModelerRowData(collection);
+  scheduleModelerLiveSync();
   renderModeler();
 }
 
 function deleteModelerRow(collection, index) {
   modelerState[collection].splice(index, 1);
+  scheduleModelerLiveSync();
   renderModeler();
 }
 
 function validateModelerModel() {
   const errors = [];
   if (!modelerState.projectName.trim()) errors.push("项目名称不能为空。");
-  validateUniqueRows(errors, modelerState.stations, "站", "id", "站ID");
   validateUniqueRows(errors, modelerState.stations, "站", "name", "站名称");
-  validateUniqueRows(errors, modelerState.actuatorClasses, "执行器类", "id", "类ID");
+  validateUniqueRows(errors, modelerState.actuatorClasses, "执行器类", "name", "类名称");
 
   modelerState.actuatorClasses.forEach((klass, index) => {
     const label = `执行器类第 ${index + 1} 行`;
-    if (!klass.id || !klass.name) errors.push(`${label}: 类ID和类名称不能为空。`);
+    if (!klass.name) errors.push(`${label}: 类名称不能为空。`);
     if (!splitTargets(klass.defaultTargets).length) errors.push(`${label}: 默认目标列表不能为空。`);
     if (!String(klass.executeTemplate || "").includes("{实例名}")) errors.push(`${label}: 执行范例必须包含 {实例名}。`);
     if (!String(klass.doneTemplate || "").includes("{实例名}")) errors.push(`${label}: 完成判断范例必须包含 {实例名}。`);
@@ -497,10 +553,10 @@ function validateModelerModel() {
   });
 
   validateEntityRows(errors, modelerState.sensors, "传感器", true, false, { useNameAsId: true });
-  validateEntityRows(errors, modelerState.timers, "定时器", true, false);
-  validateEntityRows(errors, modelerState.systemVariables, "系统变量", false, false);
-  validateEntityRows(errors, modelerState.localVariables, "局部变量", true, false);
-  validateEntityRows(errors, modelerState.globalVariables, "全局变量", false, false);
+  validateEntityRows(errors, modelerState.timers, "定时器", true, false, { useNameAsId: true });
+  validateEntityRows(errors, modelerState.systemVariables, "系统变量", false, false, { useNameAsId: true });
+  validateEntityRows(errors, modelerState.localVariables, "局部变量", true, false, { useNameAsId: true });
+  validateEntityRows(errors, modelerState.globalVariables, "全局变量", false, false, { useNameAsId: true });
   return errors;
 }
 
@@ -541,30 +597,56 @@ function showModelerValidation(errors) {
   const status = document.getElementById("modelerStatus");
   if (!status) return;
   if (!errors.length) {
-    status.innerHTML = `<span class="modeler-alerts"><span class="ok">校验通过，可以导入 IDE 项目。</span></span>`;
+    status.innerHTML = `<span class="modeler-alerts"><span class="ok">参数有效，已同步到编程界面。</span></span>`;
     return;
   }
   status.innerHTML = `<div class="modeler-alerts">${errors.slice(0, 8).map((item) => `<span class="error">${escapeHtml(item)}</span>`).join("")}${errors.length > 8 ? `<span class="error">还有 ${errors.length - 8} 个问题...</span>` : ""}</div>`;
 }
 
 function importModelerToIde() {
+  flushModelerLiveSync();
   const errors = validateModelerModel();
   if (errors.length) {
     showModelerValidation(errors);
     return;
   }
-  const next = buildProjectFromModeler();
-  replaceProjectData(next.projectData);
+  const next = buildProjectFromModeler({ preserveProgram: true });
   state = next.state;
   hydrateState();
-  resetTransientUiState();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   renderAll({ preserveScroll: false });
-  closeModeler();
-  setSummaryMessage("参数建模已导入 IDE 项目。");
+  showModelerValidation([]);
+  setSummaryMessage("参数已应用到编程界面。");
 }
 
-function buildProjectFromModeler() {
+function scheduleModelerLiveSync() {
+  window.clearTimeout(modelerSyncTimer);
+  modelerSyncTimer = window.setTimeout(() => syncModelerToIde({ render: true, quiet: true }), 220);
+}
+
+function flushModelerLiveSync() {
+  if (!modelerSyncTimer) return;
+  window.clearTimeout(modelerSyncTimer);
+  modelerSyncTimer = null;
+  syncModelerToIde({ render: true, quiet: true });
+}
+
+function syncModelerToIde(options = {}) {
+  const errors = validateModelerModel();
+  if (errors.length) {
+    if (!options.quiet) showModelerValidation(errors);
+    return false;
+  }
+  const next = buildProjectFromModeler({ preserveProgram: true });
+  state = next.state;
+  hydrateState();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  if (options.render) renderAll();
+  showModelerValidation([]);
+  return true;
+}
+
+function buildProjectFromModeler(options = {}) {
   const nextProjectData = {
     name: modelerState.projectName,
     system: {
@@ -584,13 +666,16 @@ function buildProjectFromModeler() {
         .map(toProjectSensorVariable)
     }))
   };
+  const previousState = state;
   replaceProjectData(nextProjectData);
-  const nextState = createDefaultState();
+  const nextState = options.preserveProgram
+    ? createModelerSyncedState(previousState)
+    : createDefaultState();
   modelerState.stations.forEach((station) => {
     const work = nextState.stations[station.id] || createStationWork();
     work.customItems.delay = ensureDefaultStationTimers(station.id, modelerState.timers
       .filter((timer) => timer.stationId === station.id)
-      .map((timer) => ({ id: timer.id, name: timer.name, type: "delay", defaultMs: Number(timer.defaultMs) || 1000 })));
+      .map((timer) => ({ id: timer.name, name: timer.name, type: "delay", defaultMs: Number(timer.defaultMs) || 1000 })));
     work.localVariables = modelerState.localVariables
       .filter((item) => item.stationId === station.id)
       .map(toProjectVariable);
@@ -600,9 +685,39 @@ function buildProjectFromModeler() {
   return { projectData: nextProjectData, state: nextState };
 }
 
+function createModelerSyncedState(previousState) {
+  const base = createDefaultState();
+  const nextState = {
+    ...base,
+    variableVisible: previousState.variableVisible,
+    programVisible: previousState.programVisible,
+    codeVisible: previousState.codeVisible,
+    variableStationPinned: previousState.variableStationPinned,
+    codeStationPinned: previousState.codeStationPinned,
+    visibleStationIds: Array.isArray(previousState.visibleStationIds) ? [...previousState.visibleStationIds] : [],
+    layout: { ...base.layout, ...(previousState.layout || {}) },
+    globalNames: { ...(previousState.globalNames || {}) },
+    globalComments: { ...(previousState.globalComments || {}) },
+    globalTypes: { ...(previousState.globalTypes || {}) },
+    globalTargets: { ...(previousState.globalTargets || {}) },
+    stations: {}
+  };
+  projectData.stations.forEach((station) => {
+    const previousWork = previousState.stations?.[station.id];
+    nextState.stations[station.id] = previousWork
+      ? { ...createStationWork(), ...JSON.parse(JSON.stringify(previousWork)) }
+      : createStationWork();
+  });
+  nextState.currentStationId = getStation(previousState.currentStationId)?.id || projectData.stations[0].id;
+  nextState.variableStationId = getStation(previousState.variableStationId)?.id || nextState.currentStationId;
+  nextState.programStationId = getStation(previousState.programStationId)?.id || nextState.currentStationId;
+  nextState.codeStationId = getStation(previousState.codeStationId)?.id || nextState.currentStationId;
+  return nextState;
+}
+
 function toProjectVariable(item) {
   return {
-    id: item.id || item.name,
+    id: item.name,
     name: item.name,
     type: item.type,
     valueType: item.type,
@@ -625,8 +740,8 @@ function toProjectActuator(item) {
   const executeTemplate = item.executeTemplate || klass.executeTemplate;
   const doneTemplate = item.doneTemplate || klass.doneTemplate;
   return {
-    id: item.id,
-    type: klass.id,
+    id: item.name,
+    type: klass.name || klass.id,
     name: item.name,
     targets,
     structTemplate: klass.structTemplate,
@@ -662,11 +777,11 @@ function cleanStExpression(value) {
 function exportModelerExcel() {
   const sheets = [
     ["项目", [["项目名称"], [modelerState.projectName]]],
-    ["站", [["站ID", "站名称"], ...modelerState.stations.map((row) => [row.id, row.name])]],
-    ["执行器类", [["类ID", "类名称", "结构体内容", "执行范例", "完成判断范例", "默认目标列表"], ...modelerState.actuatorClasses.map((row) => [row.id, row.name, row.structTemplate, row.executeTemplate, row.doneTemplate, row.defaultTargets])]],
-    ["执行器实例", [["所属站", "执行器类", "实例ID", "实例名", "目标列表", "执行范例覆盖", "完成判断覆盖"], ...modelerState.actuatorInstances.map((row) => [row.stationId, row.classId, row.id, row.name, row.targets, row.executeTemplate, row.doneTemplate])]],
+    ["站", [["站名称"], ...modelerState.stations.map((row) => [row.name])]],
+    ["执行器类", [["类名称", "结构体内容", "执行范例", "完成判断范例", "默认目标列表"], ...modelerState.actuatorClasses.map((row) => [row.name, row.structTemplate, row.executeTemplate, row.doneTemplate, row.defaultTargets])]],
+    ["执行器实例", [["所属站", "执行器类", "实例名", "目标列表", "执行范例覆盖", "完成判断覆盖"], ...modelerState.actuatorInstances.map((row) => [getModelerStationName(row.stationId), getModelerClassName(row.classId), row.name, row.targets, row.executeTemplate, row.doneTemplate])]],
     ["传感器", sensorSheetRows(modelerState.sensors)],
-    ["定时器", [["所属站", "定时器ID", "名称", "默认时间ms"], ...modelerState.timers.map((row) => [row.stationId, row.id, row.name, row.defaultMs])]],
+    ["定时器", [["所属站", "名称", "默认时间ms"], ...modelerState.timers.map((row) => [getModelerStationName(row.stationId), row.name, row.defaultMs])]],
     ["系统变量", variableSheetRows(modelerState.systemVariables, false)],
     ["局部变量", variableSheetRows(modelerState.localVariables, true)],
     ["全局变量", variableSheetRows(modelerState.globalVariables, false)]
@@ -680,11 +795,11 @@ function exportModelerExcel() {
 }
 
 function variableSheetRows(rows, withStation) {
-  const header = [...(withStation ? ["所属站"] : []), "变量ID", "名称", "类型", "地址", "表达式", "备注"];
-  return [header, ...rows.map((row) => [...(withStation ? [row.stationId] : []), row.id, row.name, row.type, row.address, row.expression, row.comment])];
+  const header = [...(withStation ? ["所属站"] : []), "变量名", "类型", "地址", "表达式", "备注"];
+  return [header, ...rows.map((row) => [...(withStation ? [getModelerStationName(row.stationId)] : []), row.name, row.type, row.address, row.expression, row.comment])];
 }
 
 function sensorSheetRows(rows) {
   const header = ["所属站", "变量名", "类型", "地址", "表达式", "备注"];
-  return [header, ...rows.map((row) => [row.stationId, row.name, row.type, row.address, row.expression, row.comment])];
+  return [header, ...rows.map((row) => [getModelerStationName(row.stationId), row.name, row.type, row.address, row.expression, row.comment])];
 }
