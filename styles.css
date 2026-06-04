@@ -5216,3 +5216,79 @@ body {
     min-width: 0;
   }
 }
+
+/* Final brand override: only E1 logo and project name remain visible. */
+.brand {
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 420px;
+  gap: 10px;
+}
+
+.mark {
+  width: 44px;
+  height: 44px;
+  overflow: visible;
+}
+
+.brand-mark-svg {
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.3));
+}
+
+.mark-tile {
+  fill: #0b1218;
+}
+
+.mark-glyph {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 8.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.mark-dot {
+  fill: #fff;
+}
+
+.brand-copy {
+  display: block;
+  min-width: 0;
+}
+
+.brand h1 {
+  display: block;
+  max-width: 330px;
+  overflow: hidden;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 850;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.brand p,
+.brand-dot,
+.brand-cn,
+.brand-product {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .brand {
+    min-width: 0;
+    max-width: 240px;
+    gap: 8px;
+  }
+
+  .mark {
+    width: 40px;
+    height: 40px;
+  }
+
+  .brand h1 {
+    max-width: 184px;
+    font-size: 14px;
+  }
+}
