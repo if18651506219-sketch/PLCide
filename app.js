@@ -4161,7 +4161,9 @@ function renderLogicTree(node, parentType = "") {
   if (!node) return "";
   if (node.type === "term") return node.value;
   const text = node.children.map((child) => renderLogicTree(child, node.type)).join(` ${node.type} `);
-  return parentType === "AND" && node.type === "OR" ? `(${text})` : text;
+  if (parentType === "AND" && node.type === "OR") return `(${text})`;
+  if (parentType === "OR" && node.type === "AND") return `(${text})`;
+  return text;
 }
 
 function uniqueTerms(terms) {
